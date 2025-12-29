@@ -3,114 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>New Year Flappy</title>
+    <title>Classic Flappy New Year</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --sky-day: #4ec0ca;
-            --sky-night: #152744;
-            --pipe-color: #73bf2e;
-            --snow-color: rgba(255, 255, 255, 0.8);
-        }
-
         body {
             margin: 0; padding: 0; background-color: #000;
             display: flex; align-items: center; justify-content: center;
             height: 100vh; overflow: hidden;
             -webkit-tap-highlight-color: transparent; touch-action: none;
+            font-family: 'Press Start 2P', cursive;
         }
 
         #game-container {
             position: relative; width: 100vw; height: 100vh;
-            transition: background 3s ease; /* Для смены дня и ночи */
-            background: var(--sky-day);
-            overflow: hidden;
+            background: #70c5ce; overflow: hidden;
         }
 
-        /* Птица в шапке */
+        /* Фон: Облака и город (имитация спрайта) */
+        #background-city {
+            position: absolute; bottom: 80px; width: 200%; height: 150px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><rect x="0" y="50" width="200" height="50" fill="%239ce659"/><rect x="10" y="20" width="30" height="30" fill="%23ded895"/><rect x="50" y="30" width="20" height="20" fill="%23ded895"/><rect x="120" y="10" width="40" height="40" fill="%23ded895"/></svg>');
+            background-repeat: repeat-x; opacity: 0.8; animation: moveBg 20s linear infinite;
+        }
+
+        @keyframes moveBg { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+        /* Птица (Классический спрайт) */
         #bird {
             position: absolute; width: 34px; height: 24px;
             background: #f8e71c; border: 2px solid #000;
-            border-radius: 12px; z-index: 10; will-change: transform;
+            border-radius: 8px; z-index: 10; will-change: transform;
         }
-        #bird::before { /* Шапка Санты */
-            content: ''; position: absolute; top: -12px; left: 0;
-            width: 20px; height: 12px; background: #ff0000;
-            border-radius: 50% 50% 0 0; border: 1px solid #000;
+        #bird::before { /* Глаз */
+            content: ''; position: absolute; top: 4px; right: 4px;
+            width: 8px; height: 10px; background: #fff; border: 2px solid #000; border-radius: 4px;
         }
-        #bird::after { /* Помпон */
-            content: ''; position: absolute; top: -15px; left: -2px;
-            width: 8px; height: 8px; background: #fff;
-            border-radius: 50%; border: 1px solid #000;
+        #bird::after { /* Клюв */
+            content: ''; position: absolute; top: 10px; right: -6px;
+            width: 10px; height: 8px; background: #f03; border: 2px solid #000; border-radius: 2px;
         }
 
-        /* Снег */
-        .snowflake {
-            position: absolute; color: #fff; font-size: 10px;
-            pointer-events: none; z-index: 1; animation: fall linear;
-        }
-        @keyframes fall { to { transform: translateY(100vh); } }
-
-        /* Трубы (Новогодние ледяные колонны) */
+        /* Трубы (Оригинальный стиль) */
         .pipe {
             position: absolute; width: 60px;
-            background: linear-gradient(90deg, #81d4fa, #e1f5fe, #81d4fa);
-            border: 3px solid #000; z-index: 5;
+            background: #73bf2e; border: 3px solid #000; z-index: 5;
+            box-shadow: inset -10px 0 0 #558022;
         }
         .pipe-cap {
-            position: absolute; width: 70px; height: 20px; left: -8px;
-            background: #fff; border: 3px solid #000; border-radius: 4px;
+            position: absolute; width: 70px; height: 26px; left: -8px;
+            background: #73bf2e; border: 3px solid #000;
+            box-shadow: inset -10px 0 0 #558022;
         }
         .top .pipe-cap { bottom: -3px; }
         .bottom .pipe-cap { top: -3px; }
 
-        /* Гирлянда на трубах */
-        .lights {
-            position: absolute; width: 100%; height: 100%;
-            background-image: radial-gradient(circle, #ff0 2px, transparent 3px);
-            background-size: 15px 15px;
-        }
-
         #ground {
             position: absolute; bottom: 0; width: 100%; height: 80px;
-            background: #fff; border-top: 5px solid #add8e6; z-index: 15;
+            background: #ded895; border-top: 4px solid #558022; z-index: 15;
+            background-image: repeating-linear-gradient(-45deg, #9ce659 0, #9ce659 15px, #ded895 15px, #ded895 30px);
         }
 
         #score {
-            position: absolute; top: 60px; width: 100%;
-            text-align: center; font-size: 50px; font-weight: bold;
-            color: #fff; text-shadow: 3px 3px 0 #000; z-index: 20;
+            position: absolute; top: 10%; width: 100%;
+            text-align: center; font-size: 40px; color: #fff;
+            text-shadow: 4px 4px 0 #000; z-index: 20;
         }
 
         .screen {
-            position: absolute; inset: 0; background: rgba(0,0,0,0.7);
+            position: absolute; inset: 0; background: rgba(0,0,0,0.5);
             display: flex; flex-direction: column; align-items: center;
             justify-content: center; z-index: 100; color: white; text-align: center;
+            padding: 20px;
         }
+
         .btn {
-            padding: 15px 30px; font-size: 20px; background: #e63946;
-            color: white; border: none; border-radius: 5px; cursor: pointer;
-            box-shadow: 0 4px 0 #900; margin-top: 15px;
+            padding: 20px 40px; font-size: 16px; background: #f8e71c;
+            color: #000; border: 4px solid #fff; cursor: pointer;
+            font-family: 'Press Start 2P', cursive; box-shadow: 6px 6px 0 #000;
         }
+        
+        .snowflake {
+            position: absolute; color: #fff; pointer-events: none; z-index: 1001;
+            animation: fall linear forwards;
+        }
+        @keyframes fall { to { transform: translateY(100vh); } }
     </style>
 </head>
 <body>
 
 <div id="game-container">
+    <div id="background-city"></div>
     <div id="score">0</div>
     <div id="bird"></div>
     <div id="ground"></div>
 
     <div id="start-screen" class="screen">
-        <h1 style="color: #ff0000;">HAPPY NEW YEAR!</h1>
-        <p>Лети сквозь льды!</p>
-        <button class="btn" onclick="startGame()">ПОЕХАЛИ</button>
+        <h1 style="font-size: 20px; line-height: 1.5;">FLAPPY<br>NEW YEAR</h1>
+        <button class="btn" onclick="startGame()">START</button>
     </div>
 
     <div id="over-screen" class="screen" style="display: none;">
-        <h1>КОНЕЦ ПУТИ</h1>
-        <p id="final-score">Счет: 0</p>
-        <button class="btn" onclick="startGame()">ЕЩЕ РАЗ</button>
+        <h1 style="font-size: 20px;">GAME OVER</h1>
+        <p id="final-score" style="font-size: 14px; margin: 20px 0;"></p>
+        <button class="btn" onclick="startGame()">RETRY</button>
     </div>
 </div>
 
@@ -124,60 +120,54 @@
     const scoreText = document.getElementById('score');
     
     let birdY, velocity, score, isGameRunning, pipes, frameId;
-    let gameSpeed = 3;
-    let currentGap = 180; // Начальный большой зазор
+    let gravity = 0.25;
+    let jump = -5.2;
 
     function startGame() {
         isGameRunning = true;
         score = 0;
         birdY = window.innerHeight / 2;
         velocity = 0;
-        gameSpeed = 3;
-        currentGap = 180;
         scoreText.innerText = "0";
-        container.style.background = "var(--sky-day)";
         document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
         
-        pipes.forEach(p => { p.top.remove(); p.bottom.remove(); });
+        if (pipes) pipes.forEach(p => { p.top.remove(); p.bottom.remove(); });
         pipes = [];
         
         requestAnimationFrame(update);
     }
 
     function createPipe() {
-        // Усложнение: зазор уменьшается до минимума в 110px
-        currentGap = Math.max(110, 180 - Math.floor(score / 3) * 5);
-        
-        const minH = 60;
-        const maxH = window.innerHeight - currentGap - minH - 100;
-        const topH = Math.floor(Math.random() * maxH) + minH;
+        const gap = Math.max(120, 170 - (score * 2)); // Постепенное сужение зазора
+        const topH = Math.floor(Math.random() * (window.innerHeight - gap - 200)) + 50;
 
         const top = document.createElement('div');
         top.className = 'pipe top';
         top.style.height = topH + 'px';
         top.style.left = window.innerWidth + 'px';
-        top.innerHTML = '<div class="pipe-cap"></div><div class="lights"></div>';
+        top.innerHTML = '<div class="pipe-cap"></div>';
 
         const bottom = document.createElement('div');
         bottom.className = 'pipe bottom';
-        bottom.style.height = (window.innerHeight - topH - currentGap - 80) + 'px';
+        bottom.style.height = (window.innerHeight - topH - gap - 80) + 'px';
         bottom.style.bottom = '80px';
         bottom.style.left = window.innerWidth + 'px';
-        bottom.innerHTML = '<div class="pipe-cap"></div><div class="lights"></div>';
+        bottom.innerHTML = '<div class="pipe-cap"></div>';
 
         container.appendChild(top);
         container.appendChild(bottom);
         pipes.push({ x: window.innerWidth, top, bottom, passed: false });
     }
 
-    function createSnow() {
-        if (Math.random() > 0.1) return;
+    function spawnSnow() {
+        if (Math.random() > 0.05) return;
         const snow = document.createElement('div');
         snow.className = 'snowflake';
-        snow.innerHTML = '❄';
+        snow.innerText = '❄';
         snow.style.left = Math.random() * 100 + 'vw';
+        snow.style.top = '-20px';
+        snow.style.fontSize = (Math.random() * 10 + 10) + 'px';
         snow.style.animationDuration = (Math.random() * 3 + 2) + 's';
-        snow.style.opacity = Math.random();
         container.appendChild(snow);
         setTimeout(() => snow.remove(), 5000);
     }
@@ -185,23 +175,21 @@
     function update() {
         if (!isGameRunning) return;
 
-        createSnow();
-
-        velocity += 0.25;
+        spawnSnow();
+        velocity += gravity;
         birdY += velocity;
         bird.style.transform = `translateY(${birdY}px) rotate(${Math.min(velocity * 4, 90)}deg)`;
 
-        if (birdY > window.innerHeight - 104 || birdY < 0) return gameOver();
-
-        // Усложнение: скорость растет
-        gameSpeed = 3 + (score * 0.1);
+        if (birdY > window.innerHeight - 104 || birdY < -20) return gameOver();
 
         if (pipes.length === 0 || pipes[pipes.length - 1].x < window.innerWidth - 220) {
             createPipe();
         }
 
+        const speed = 3 + (score * 0.1); // Плавное ускорение
+
         pipes.forEach((pipe, i) => {
-            pipe.x -= gameSpeed;
+            pipe.x -= speed;
             pipe.top.style.left = pipe.x + 'px';
             pipe.bottom.style.left = pipe.x + 'px';
 
@@ -209,7 +197,7 @@
             const t = pipe.top.getBoundingClientRect();
             const bt = pipe.bottom.getBoundingClientRect();
 
-            if (b.right > t.left && b.left < t.right && (b.top < t.bottom || b.bottom > bt.top)) {
+            if (b.right - 5 > t.left && b.left + 5 < t.right && (b.top + 5 < t.bottom || b.bottom - 5 > bt.top)) {
                 gameOver();
             }
 
@@ -218,10 +206,6 @@
                 score++;
                 scoreText.innerText = score;
                 tg.HapticFeedback.impactOccurred('medium');
-
-                // Смена дня и ночи каждые 15 очков
-                if (score % 30 === 15) container.style.background = "var(--sky-night)";
-                if (score % 30 === 0) container.style.background = "var(--sky-day)";
             }
 
             if (pipe.x < -70) {
@@ -238,21 +222,19 @@
         cancelAnimationFrame(frameId);
         tg.HapticFeedback.notificationOccurred('error');
         document.getElementById('over-screen').style.display = 'flex';
-        document.getElementById('final-score').innerText = "Счет: " + score;
+        document.getElementById('final-score').innerText = "SCORE: " + score;
     }
 
-    const jump = (e) => {
+    const handleInput = (e) => {
         if (!isGameRunning) return;
-        velocity = -5.5;
+        velocity = jump;
         tg.HapticFeedback.impactOccurred('light');
-        if(e) e.preventDefault();
+        if (e) e.preventDefault();
     };
 
-    window.addEventListener('touchstart', jump, { passive: false });
-    window.addEventListener('mousedown', (e) => { if(e.button === 0) jump(); });
+    window.addEventListener('touchstart', handleInput, { passive: false });
+    window.addEventListener('mousedown', (e) => { if (e.button === 0) handleInput(); });
     
-    // Начальная загрузка
-    birdY = window.innerHeight / 2;
     pipes = [];
     isGameRunning = false;
 </script>
