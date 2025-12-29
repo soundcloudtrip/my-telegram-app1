@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Classic Flappy New Year</title>
+    <title>Flappy Bird Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body {
-            margin: 0; padding: 0; background-color: #000;
+            margin: 0; padding: 0; background: #000;
             display: flex; align-items: center; justify-content: center;
             height: 100vh; overflow: hidden;
             -webkit-tap-highlight-color: transparent; touch-action: none;
@@ -17,103 +17,91 @@
 
         #game-container {
             position: relative; width: 100vw; height: 100vh;
-            background: #70c5ce; overflow: hidden;
+            /* Оригинальный фон день/ночь */
+            background: #70c5ce url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/background-day.png');
+            background-size: 500px 100%;
+            image-rendering: pixelated;
+            overflow: hidden;
         }
 
-        /* Фон: Облака и город (имитация спрайта) */
-        #background-city {
-            position: absolute; bottom: 80px; width: 200%; height: 150px;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><rect x="0" y="50" width="200" height="50" fill="%239ce659"/><rect x="10" y="20" width="30" height="30" fill="%23ded895"/><rect x="50" y="30" width="20" height="20" fill="%23ded895"/><rect x="120" y="10" width="40" height="40" fill="%23ded895"/></svg>');
-            background-repeat: repeat-x; opacity: 0.8; animation: moveBg 20s linear infinite;
-        }
-
-        @keyframes moveBg { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-
-        /* Птица (Классический спрайт) */
+        /* Птица */
         #bird {
             position: absolute; width: 34px; height: 24px;
-            background: #f8e71c; border: 2px solid #000;
-            border-radius: 8px; z-index: 10; will-change: transform;
-        }
-        #bird::before { /* Глаз */
-            content: ''; position: absolute; top: 4px; right: 4px;
-            width: 8px; height: 10px; background: #fff; border: 2px solid #000; border-radius: 4px;
-        }
-        #bird::after { /* Клюв */
-            content: ''; position: absolute; top: 10px; right: -6px;
-            width: 10px; height: 8px; background: #f03; border: 2px solid #000; border-radius: 2px;
+            background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/yellowbird-midflap.png') no-repeat;
+            background-size: contain; z-index: 10; will-change: transform;
         }
 
-        /* Трубы (Оригинальный стиль) */
+        /* Шапка Санты */
+        #bird::before {
+            content: '🎅'; position: absolute; top: -15px; left: -5px; font-size: 20px;
+        }
+
+        /* Трубы */
         .pipe {
-            position: absolute; width: 60px;
-            background: #73bf2e; border: 3px solid #000; z-index: 5;
-            box-shadow: inset -10px 0 0 #558022;
+            position: absolute; width: 52px;
+            background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/pipe-green.png') repeat-y;
+            background-size: 52px auto; z-index: 5;
+            image-rendering: pixelated;
         }
-        .pipe-cap {
-            position: absolute; width: 70px; height: 26px; left: -8px;
-            background: #73bf2e; border: 3px solid #000;
-            box-shadow: inset -10px 0 0 #558022;
-        }
-        .top .pipe-cap { bottom: -3px; }
-        .bottom .pipe-cap { top: -3px; }
+        .pipe.top { transform: rotate(180deg); }
 
+        /* Земля */
         #ground {
-            position: absolute; bottom: 0; width: 100%; height: 80px;
-            background: #ded895; border-top: 4px solid #558022; z-index: 15;
-            background-image: repeating-linear-gradient(-45deg, #9ce659 0, #9ce659 15px, #ded895 15px, #ded895 30px);
+            position: absolute; bottom: 0; width: 200%; height: 112px;
+            background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/base.png') repeat-x;
+            background-size: contain; z-index: 15;
+            animation: moveGround 2s linear infinite;
         }
+        @keyframes moveGround { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
         #score {
-            position: absolute; top: 10%; width: 100%;
+            position: absolute; top: 15%; width: 100%;
             text-align: center; font-size: 40px; color: #fff;
-            text-shadow: 4px 4px 0 #000; z-index: 20;
+            text-shadow: 3px 3px 0 #000; z-index: 20;
         }
 
         .screen {
-            position: absolute; inset: 0; background: rgba(0,0,0,0.5);
+            position: absolute; inset: 0; background: rgba(0,0,0,0.4);
             display: flex; flex-direction: column; align-items: center;
-            justify-content: center; z-index: 100; color: white; text-align: center;
-            padding: 20px;
+            justify-content: center; z-index: 100;
         }
 
-        .btn {
-            padding: 20px 40px; font-size: 16px; background: #f8e71c;
-            color: #000; border: 4px solid #fff; cursor: pointer;
-            font-family: 'Press Start 2P', cursive; box-shadow: 6px 6px 0 #000;
+        /* Спрайт "Get Ready" и "Game Over" */
+        .get-ready { width: 184px; height: 50px; background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/message.png') no-repeat center; background-size: contain; margin-bottom: 20px; }
+        .game-over { width: 192px; height: 42px; background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/gameover.png') no-repeat center; background-size: contain; margin-bottom: 20px; }
+
+        .btn-play {
+            width: 100px; height: 50px; 
+            background: #fff; border: 3px solid #555;
+            cursor: pointer; font-family: 'Press Start 2P', cursive;
+            display: flex; align-items: center; justify-content: center;
         }
         
-        .snowflake {
-            position: absolute; color: #fff; pointer-events: none; z-index: 1001;
-            animation: fall linear forwards;
-        }
-        @keyframes fall { to { transform: translateY(100vh); } }
+        .snowflake { position: absolute; color: #fff; pointer-events: none; z-index: 1000; animation: fall linear infinite; }
+        @keyframes fall { to { transform: translateY(110vh); } }
     </style>
 </head>
 <body>
 
 <div id="game-container">
-    <div id="background-city"></div>
     <div id="score">0</div>
     <div id="bird"></div>
     <div id="ground"></div>
 
     <div id="start-screen" class="screen">
-        <h1 style="font-size: 20px; line-height: 1.5;">FLAPPY<br>NEW YEAR</h1>
-        <button class="btn" onclick="startGame()">START</button>
+        <div class="get-ready"></div>
+        <div class="btn-play" onclick="startGame()">OK</div>
     </div>
 
     <div id="over-screen" class="screen" style="display: none;">
-        <h1 style="font-size: 20px;">GAME OVER</h1>
-        <p id="final-score" style="font-size: 14px; margin: 20px 0;"></p>
-        <button class="btn" onclick="startGame()">RETRY</button>
+        <div class="game-over"></div>
+        <div class="btn-play" onclick="startGame()">▶</div>
     </div>
 </div>
 
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
-    tg.ready();
 
     const bird = document.getElementById('bird');
     const container = document.getElementById('game-container');
@@ -121,12 +109,12 @@
     
     let birdY, velocity, score, isGameRunning, pipes, frameId;
     let gravity = 0.25;
-    let jump = -5.2;
+    let jump = -5.0;
 
     function startGame() {
         isGameRunning = true;
         score = 0;
-        birdY = window.innerHeight / 2;
+        birdY = window.innerHeight / 2.5;
         velocity = 0;
         scoreText.innerText = "0";
         document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
@@ -138,21 +126,19 @@
     }
 
     function createPipe() {
-        const gap = Math.max(120, 170 - (score * 2)); // Постепенное сужение зазора
-        const topH = Math.floor(Math.random() * (window.innerHeight - gap - 200)) + 50;
+        const gap = 150;
+        const topH = Math.floor(Math.random() * (window.innerHeight - gap - 250)) + 50;
 
         const top = document.createElement('div');
         top.className = 'pipe top';
         top.style.height = topH + 'px';
         top.style.left = window.innerWidth + 'px';
-        top.innerHTML = '<div class="pipe-cap"></div>';
 
         const bottom = document.createElement('div');
         bottom.className = 'pipe bottom';
-        bottom.style.height = (window.innerHeight - topH - gap - 80) + 'px';
-        bottom.style.bottom = '80px';
+        bottom.style.height = (window.innerHeight - topH - gap - 112) + 'px';
+        bottom.style.bottom = '112px';
         bottom.style.left = window.innerWidth + 'px';
-        bottom.innerHTML = '<div class="pipe-cap"></div>';
 
         container.appendChild(top);
         container.appendChild(bottom);
@@ -160,7 +146,7 @@
     }
 
     function spawnSnow() {
-        if (Math.random() > 0.05) return;
+        if (Math.random() > 0.1) return;
         const snow = document.createElement('div');
         snow.className = 'snowflake';
         snow.innerText = '❄';
@@ -180,16 +166,14 @@
         birdY += velocity;
         bird.style.transform = `translateY(${birdY}px) rotate(${Math.min(velocity * 4, 90)}deg)`;
 
-        if (birdY > window.innerHeight - 104 || birdY < -20) return gameOver();
+        if (birdY > window.innerHeight - 112 - 24 || birdY < -50) return gameOver();
 
-        if (pipes.length === 0 || pipes[pipes.length - 1].x < window.innerWidth - 220) {
+        if (pipes.length === 0 || pipes[pipes.length - 1].x < window.innerWidth - 200) {
             createPipe();
         }
 
-        const speed = 3 + (score * 0.1); // Плавное ускорение
-
         pipes.forEach((pipe, i) => {
-            pipe.x -= speed;
+            pipe.x -= 3;
             pipe.top.style.left = pipe.x + 'px';
             pipe.bottom.style.left = pipe.x + 'px';
 
@@ -208,7 +192,7 @@
                 tg.HapticFeedback.impactOccurred('medium');
             }
 
-            if (pipe.x < -70) {
+            if (pipe.x < -60) {
                 pipe.top.remove(); pipe.bottom.remove();
                 pipes.splice(i, 1);
             }
@@ -222,18 +206,17 @@
         cancelAnimationFrame(frameId);
         tg.HapticFeedback.notificationOccurred('error');
         document.getElementById('over-screen').style.display = 'flex';
-        document.getElementById('final-score').innerText = "SCORE: " + score;
     }
 
-    const handleInput = (e) => {
+    const input = (e) => {
         if (!isGameRunning) return;
         velocity = jump;
         tg.HapticFeedback.impactOccurred('light');
         if (e) e.preventDefault();
     };
 
-    window.addEventListener('touchstart', handleInput, { passive: false });
-    window.addEventListener('mousedown', (e) => { if (e.button === 0) handleInput(); });
+    window.addEventListener('touchstart', input, { passive: false });
+    window.addEventListener('mousedown', (e) => { if (e.button === 0) input(); });
     
     pipes = [];
     isGameRunning = false;
