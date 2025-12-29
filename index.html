@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Flappy Bird Pro</title>
+    <title>Flappy World Records</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
+        :root { --accent: #e63946; --gold: #ffb703; --sky: #70c5ce; }
         body {
             margin: 0; padding: 0; background: #000;
             display: flex; align-items: center; justify-content: center;
@@ -17,85 +18,83 @@
 
         #game-container {
             position: relative; width: 100vw; height: 100vh;
-            /* Оригинальный фон день/ночь */
-            background: #70c5ce url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/background-day.png');
-            background-size: 500px 100%;
-            image-rendering: pixelated;
-            overflow: hidden;
+            background: var(--sky) url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/background-day.png');
+            background-size: cover; background-position: bottom;
+            image-rendering: pixelated; overflow: hidden;
         }
 
         /* Птица */
         #bird {
             position: absolute; width: 34px; height: 24px;
             background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/yellowbird-midflap.png') no-repeat;
-            background-size: contain; z-index: 10; will-change: transform;
+            background-size: contain; z-index: 10;
         }
+        #bird::after { content: '🎅'; position: absolute; top: -18px; left: -4px; font-size: 22px; }
 
-        /* Шапка Санты */
-        #bird::before {
-            content: '🎅'; position: absolute; top: -15px; left: -5px; font-size: 20px;
-        }
-
-        /* Трубы */
         .pipe {
             position: absolute; width: 52px;
             background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/pipe-green.png') repeat-y;
-            background-size: 52px auto; z-index: 5;
-            image-rendering: pixelated;
+            background-size: 52px auto; z-index: 5; border: 2px solid #000;
         }
-        .pipe.top { transform: rotate(180deg); }
+        .pipe.top { transform: rotate(180deg); filter: hue-rotate(45deg); }
 
-        /* Земля */
         #ground {
-            position: absolute; bottom: 0; width: 200%; height: 112px;
+            position: absolute; bottom: 0; width: 200%; height: 100px;
             background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/base.png') repeat-x;
             background-size: contain; z-index: 15;
             animation: moveGround 2s linear infinite;
         }
         @keyframes moveGround { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
-        #score {
-            position: absolute; top: 15%; width: 100%;
-            text-align: center; font-size: 40px; color: #fff;
-            text-shadow: 3px 3px 0 #000; z-index: 20;
-        }
+        #score-val { position: absolute; top: 10%; width: 100%; text-align: center; font-size: 50px; color: #fff; text-shadow: 4px 4px 0 #000; z-index: 20; }
 
         .screen {
-            position: absolute; inset: 0; background: rgba(0,0,0,0.4);
+            position: absolute; inset: 0; background: rgba(0,0,0,0.8);
             display: flex; flex-direction: column; align-items: center;
-            justify-content: center; z-index: 100;
+            justify-content: center; z-index: 100; color: #fff;
         }
 
-        /* Спрайт "Get Ready" и "Game Over" */
-        .get-ready { width: 184px; height: 50px; background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/message.png') no-repeat center; background-size: contain; margin-bottom: 20px; }
-        .game-over { width: 192px; height: 42px; background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/gameover.png') no-repeat center; background-size: contain; margin-bottom: 20px; }
-
-        .btn-play {
-            width: 100px; height: 50px; 
-            background: #fff; border: 3px solid #555;
-            cursor: pointer; font-family: 'Press Start 2P', cursive;
-            display: flex; align-items: center; justify-content: center;
+        /* Таблица стили */
+        .leaderboard-box {
+            background: #ded895; border: 4px solid #558022;
+            padding: 15px; width: 280px; color: #000;
+            box-shadow: 8px 8px 0 #000; margin-bottom: 20px;
         }
-        
-        .snowflake { position: absolute; color: #fff; pointer-events: none; z-index: 1000; animation: fall linear infinite; }
-        @keyframes fall { to { transform: translateY(110vh); } }
+        .leaderboard-box h2 { font-size: 12px; text-align: center; margin-bottom: 15px; color: #e63946; }
+        .row { display: flex; justify-content: space-between; font-size: 10px; margin: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.1); }
+        .row.me { color: #e63946; font-weight: bold; }
+
+        .btn {
+            background: #28a745; color: #fff; border: 4px solid #fff;
+            padding: 15px 30px; font-family: 'Press Start 2P', cursive;
+            cursor: pointer; box-shadow: 4px 4px 0 #000;
+        }
     </style>
 </head>
 <body>
 
 <div id="game-container">
-    <div id="score">0</div>
+    <div id="score-val">0</div>
     <div id="bird"></div>
     <div id="ground"></div>
 
     <div id="start-screen" class="screen">
-        <div class="get-ready"></div>
-        <div class="btn-play" onclick="startGame()">OK</div>
+        <h1 style="color: var(--gold); font-size: 18px; margin-bottom: 20px;">WORLD TOP</h1>
+        
+        <div class="leaderboard-box">
+            <h2>🏆 BEST PLAYERS</h2>
+            <div id="leaderboard-list">
+                <div class="row"><span>Загрузка...</span></div>
+            </div>
+        </div>
+
+        <button class="btn" onclick="startGame()">START</button>
     </div>
 
     <div id="over-screen" class="screen" style="display: none;">
-        <div class="game-over"></div>
-        <div class="btn-play" onclick="startGame()">▶</div>
+        <h1 style="color: var(--accent);">GAME OVER</h1>
+        <p id="final-score" style="margin: 20px 0;">SCORE: 0</p>
+        <button class="btn" onclick="startGame()">RETRY</button>
     </div>
 </div>
 
@@ -104,13 +103,47 @@
     tg.expand();
 
     const bird = document.getElementById('bird');
-    const container = document.getElementById('game-container');
-    const scoreText = document.getElementById('score');
-    
-    let birdY, velocity, score, isGameRunning, pipes, frameId;
-    let gravity = 0.25;
-    let jump = -5.0;
+    const scoreText = document.getElementById('score-val');
+    const leaderList = document.getElementById('leaderboard-list');
 
+    let birdY, velocity, score, isGameRunning, pipes = [], frameId;
+    const gravity = 0.25;
+    const jump = -5.2;
+
+    // --- ЛОГИКА ТАБЛИЦЫ РЕКОРДОВ (ЧЕРЕЗ LOCALSTORAGE + ПРОВЕРКА) ---
+    // Так как GitHub не имеет базы, мы имитируем общую таблицу.
+    // Если ты хочешь РЕАЛЬНУЮ общую таблицу, её нужно подключать через Firebase.
+    // Пока сделаем самую красивую локальную, которая выглядит как мировая.
+
+    function updateLeaderboard(newScore) {
+        let data = JSON.parse(localStorage.getItem('world_records') || '[]');
+        const userName = tg.initDataUnsafe?.user?.first_name || "Player";
+        
+        if (newScore > 0) {
+            data.push({ name: userName, score: newScore, me: true });
+        }
+        
+        data.sort((a, b) => b.score - a.score);
+        data = data.slice(0, 5); // Только ТОП-5
+        
+        localStorage.setItem('world_records', JSON.stringify(data));
+        renderLeaderboard(data);
+    }
+
+    function renderLeaderboard(data) {
+        if (!data || data.length === 0) {
+            leaderList.innerHTML = '<div class="row"><span>Стань первым!</span></div>';
+            return;
+        }
+        leaderList.innerHTML = data.map((item, i) => `
+            <div class="row ${item.me ? 'me' : ''}">
+                <span>${i+1}. ${item.name.substring(0, 10)}</span>
+                <span>${item.score}</span>
+            </div>
+        `).join('');
+    }
+
+    // --- ИГРОВОЙ ЦИКЛ ---
     function startGame() {
         isGameRunning = true;
         score = 0;
@@ -118,62 +151,40 @@
         velocity = 0;
         scoreText.innerText = "0";
         document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
-        
-        if (pipes) pipes.forEach(p => { p.top.remove(); p.bottom.remove(); });
+        pipes.forEach(p => { p.top.remove(); p.bottom.remove(); });
         pipes = [];
-        
         requestAnimationFrame(update);
     }
 
     function createPipe() {
         const gap = 150;
         const topH = Math.floor(Math.random() * (window.innerHeight - gap - 250)) + 50;
-
         const top = document.createElement('div');
         top.className = 'pipe top';
         top.style.height = topH + 'px';
         top.style.left = window.innerWidth + 'px';
-
         const bottom = document.createElement('div');
         bottom.className = 'pipe bottom';
-        bottom.style.height = (window.innerHeight - topH - gap - 112) + 'px';
-        bottom.style.bottom = '112px';
+        bottom.style.height = (window.innerHeight - topH - gap - 100) + 'px';
+        bottom.style.bottom = '100px';
         bottom.style.left = window.innerWidth + 'px';
-
-        container.appendChild(top);
-        container.appendChild(bottom);
+        document.getElementById('game-container').appendChild(top);
+        document.getElementById('game-container').appendChild(bottom);
         pipes.push({ x: window.innerWidth, top, bottom, passed: false });
-    }
-
-    function spawnSnow() {
-        if (Math.random() > 0.1) return;
-        const snow = document.createElement('div');
-        snow.className = 'snowflake';
-        snow.innerText = '❄';
-        snow.style.left = Math.random() * 100 + 'vw';
-        snow.style.top = '-20px';
-        snow.style.fontSize = (Math.random() * 10 + 10) + 'px';
-        snow.style.animationDuration = (Math.random() * 3 + 2) + 's';
-        container.appendChild(snow);
-        setTimeout(() => snow.remove(), 5000);
     }
 
     function update() {
         if (!isGameRunning) return;
-
-        spawnSnow();
         velocity += gravity;
         birdY += velocity;
         bird.style.transform = `translateY(${birdY}px) rotate(${Math.min(velocity * 4, 90)}deg)`;
 
-        if (birdY > window.innerHeight - 112 - 24 || birdY < -50) return gameOver();
+        if (birdY > window.innerHeight - 100 - 24 || birdY < -50) return gameOver();
 
-        if (pipes.length === 0 || pipes[pipes.length - 1].x < window.innerWidth - 200) {
-            createPipe();
-        }
+        if (pipes.length === 0 || pipes[pipes.length - 1].x < window.innerWidth - 220) createPipe();
 
         pipes.forEach((pipe, i) => {
-            pipe.x -= 3;
+            pipe.x -= 3.5;
             pipe.top.style.left = pipe.x + 'px';
             pipe.bottom.style.left = pipe.x + 'px';
 
@@ -181,9 +192,7 @@
             const t = pipe.top.getBoundingClientRect();
             const bt = pipe.bottom.getBoundingClientRect();
 
-            if (b.right - 5 > t.left && b.left + 5 < t.right && (b.top + 5 < t.bottom || b.bottom - 5 > bt.top)) {
-                gameOver();
-            }
+            if (b.right-8 > t.left && b.left+8 < t.right && (b.top+5 < t.bottom || b.bottom-5 > bt.top)) gameOver();
 
             if (!pipe.passed && pipe.x < 50) {
                 pipe.passed = true;
@@ -191,13 +200,11 @@
                 scoreText.innerText = score;
                 tg.HapticFeedback.impactOccurred('medium');
             }
-
             if (pipe.x < -60) {
                 pipe.top.remove(); pipe.bottom.remove();
                 pipes.splice(i, 1);
             }
         });
-
         frameId = requestAnimationFrame(update);
     }
 
@@ -205,21 +212,17 @@
         isGameRunning = false;
         cancelAnimationFrame(frameId);
         tg.HapticFeedback.notificationOccurred('error');
+        updateLeaderboard(score);
         document.getElementById('over-screen').style.display = 'flex';
+        document.getElementById('final-score').innerText = "SCORE: " + score;
     }
 
-    const input = (e) => {
-        if (!isGameRunning) return;
-        velocity = jump;
-        tg.HapticFeedback.impactOccurred('light');
-        if (e) e.preventDefault();
-    };
-
+    const input = (e) => { if (isGameRunning) { velocity = jump; tg.HapticFeedback.impactOccurred('light'); } if (e) e.preventDefault(); };
     window.addEventListener('touchstart', input, { passive: false });
     window.addEventListener('mousedown', (e) => { if (e.button === 0) input(); });
-    
-    pipes = [];
-    isGameRunning = false;
+
+    // Инициализация таблицы при запуске
+    updateLeaderboard(0);
 </script>
 </body>
 </html>
