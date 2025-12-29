@@ -3,168 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Pixel Fly TG</title>
+    <title>New Year Flappy</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --sky-color: #4ec0ca;
-            --pipe-green: #73bf2e;
-            --pipe-dark: #558022;
+            --sky-day: #4ec0ca;
+            --sky-night: #152744;
+            --pipe-color: #73bf2e;
+            --snow-color: rgba(255, 255, 255, 0.8);
         }
 
         body {
-            margin: 0;
-            padding: 0;
-            background-color: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            overflow: hidden;
-            font-family: 'Arial', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: none; /* Убирает все задержки браузера */
+            margin: 0; padding: 0; background-color: #000;
+            display: flex; align-items: center; justify-content: center;
+            height: 100vh; overflow: hidden;
+            -webkit-tap-highlight-color: transparent; touch-action: none;
         }
 
         #game-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            background: var(--sky-color);
+            position: relative; width: 100vw; height: 100vh;
+            transition: background 3s ease; /* Для смены дня и ночи */
+            background: var(--sky-day);
             overflow: hidden;
-            background-image: 
-                radial-gradient(circle at 20% 30%, white 2%, transparent 3%),
-                radial-gradient(circle at 80% 20%, white 4%, transparent 5%),
-                linear-gradient(to bottom, #4ec0ca 0%, #d2eaf0 100%);
         }
 
-        /* Детальная птица */
+        /* Птица в шапке */
         #bird {
-            position: absolute;
-            width: 38px;
-            height: 28px;
-            background: #f8e71c;
-            border: 3px solid #000;
-            border-radius: 50% 50% 40% 40%;
-            z-index: 10;
-            will-change: transform; /* Оптимизация скорости */
+            position: absolute; width: 34px; height: 24px;
+            background: #f8e71c; border: 2px solid #000;
+            border-radius: 12px; z-index: 10; will-change: transform;
         }
-        #bird::after { /* Глаз */
-            content: '';
-            position: absolute;
-            top: 5px; right: 5px;
-            width: 8px; height: 8px;
-            background: white; border: 2px solid black; border-radius: 50%;
+        #bird::before { /* Шапка Санты */
+            content: ''; position: absolute; top: -12px; left: 0;
+            width: 20px; height: 12px; background: #ff0000;
+            border-radius: 50% 50% 0 0; border: 1px solid #000;
         }
-        #bird::before { /* Крыло */
-            content: '';
-            position: absolute;
-            top: 10px; left: -5px;
-            width: 15px; height: 10px;
-            background: #fff; border: 2px solid black; border-radius: 40%;
+        #bird::after { /* Помпон */
+            content: ''; position: absolute; top: -15px; left: -2px;
+            width: 8px; height: 8px; background: #fff;
+            border-radius: 50%; border: 1px solid #000;
         }
 
-        /* Детальные трубы */
+        /* Снег */
+        .snowflake {
+            position: absolute; color: #fff; font-size: 10px;
+            pointer-events: none; z-index: 1; animation: fall linear;
+        }
+        @keyframes fall { to { transform: translateY(100vh); } }
+
+        /* Трубы (Новогодние ледяные колонны) */
         .pipe {
-            position: absolute;
-            width: 60px;
-            background: linear-gradient(90deg, var(--pipe-dark) 0%, var(--pipe-green) 20%, var(--pipe-green) 80%, var(--pipe-dark) 100%);
-            border: 3px solid #000;
-            z-index: 5;
+            position: absolute; width: 60px;
+            background: linear-gradient(90deg, #81d4fa, #e1f5fe, #81d4fa);
+            border: 3px solid #000; z-index: 5;
         }
         .pipe-cap {
-            position: absolute;
-            width: 70px;
-            height: 25px;
-            left: -8px;
-            background: linear-gradient(90deg, var(--pipe-dark) 0%, var(--pipe-green) 20%, var(--pipe-green) 80%, var(--pipe-dark) 100%);
-            border: 3px solid #000;
+            position: absolute; width: 70px; height: 20px; left: -8px;
+            background: #fff; border: 3px solid #000; border-radius: 4px;
         }
         .top .pipe-cap { bottom: -3px; }
         .bottom .pipe-cap { top: -3px; }
 
-        /* Декорации (Город на фоне) */
-        #city {
-            position: absolute;
-            bottom: 60px;
-            width: 200%;
-            height: 100px;
-            background-image: repeating-linear-gradient(90deg, #5fb2bb 0, #5fb2bb 40px, transparent 40px, transparent 80px);
-            opacity: 0.5;
-            animation: moveCity 20s linear infinite;
-        }
-
-        @keyframes moveCity {
-            from { transform: translateX(0); }
-            to { transform: translateX(-50%); }
+        /* Гирлянда на трубах */
+        .lights {
+            position: absolute; width: 100%; height: 100%;
+            background-image: radial-gradient(circle, #ff0 2px, transparent 3px);
+            background-size: 15px 15px;
         }
 
         #ground {
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            height: 60px;
-            background: #ded895;
-            border-top: 4px solid #558022;
-            z-index: 15;
-            background-image: repeating-linear-gradient(45deg, #d3ca7b 0, #d3ca7b 10px, #ded895 10px, #ded895 20px);
+            position: absolute; bottom: 0; width: 100%; height: 80px;
+            background: #fff; border-top: 5px solid #add8e6; z-index: 15;
         }
 
         #score {
-            position: absolute;
-            top: 50px;
-            width: 100%;
-            text-align: center;
-            font-size: 60px;
-            font-weight: bold;
-            color: #fff;
-            text-shadow: 4px 4px 0 #000;
-            z-index: 20;
+            position: absolute; top: 60px; width: 100%;
+            text-align: center; font-size: 50px; font-weight: bold;
+            color: #fff; text-shadow: 3px 3px 0 #000; z-index: 20;
         }
 
         .screen {
-            position: absolute;
-            inset: 0;
-            background: rgba(0,0,0,0.6);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-            color: white;
-            text-align: center;
+            position: absolute; inset: 0; background: rgba(0,0,0,0.7);
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; z-index: 100; color: white; text-align: center;
         }
-
         .btn {
-            padding: 15px 40px;
-            font-size: 24px;
-            background: #ff8c00;
-            color: white;
-            border: 4px solid #fff;
-            border-radius: 10px;
-            cursor: pointer;
-            margin-top: 20px;
-            box-shadow: 0 5px 0 #b36200;
+            padding: 15px 30px; font-size: 20px; background: #e63946;
+            color: white; border: none; border-radius: 5px; cursor: pointer;
+            box-shadow: 0 4px 0 #900; margin-top: 15px;
         }
     </style>
 </head>
 <body>
 
 <div id="game-container">
-    <div id="city"></div>
     <div id="score">0</div>
     <div id="bird"></div>
     <div id="ground"></div>
 
     <div id="start-screen" class="screen">
-        <h1 style="font-size: 40px; margin-bottom: 0;">PIXEL FLY</h1>
-        <p>Тапай, чтобы лететь</p>
-        <button class="btn" onclick="startGame()">ИГРАТЬ</button>
+        <h1 style="color: #ff0000;">HAPPY NEW YEAR!</h1>
+        <p>Лети сквозь льды!</p>
+        <button class="btn" onclick="startGame()">ПОЕХАЛИ</button>
     </div>
 
     <div id="over-screen" class="screen" style="display: none;">
-        <h1 style="color: #ff4444;">GAME OVER</h1>
-        <p id="final-score" style="font-size: 24px;">Счет: 0</p>
+        <h1>КОНЕЦ ПУТИ</h1>
+        <p id="final-score">Счет: 0</p>
         <button class="btn" onclick="startGame()">ЕЩЕ РАЗ</button>
     </div>
 </div>
@@ -178,105 +123,110 @@
     const container = document.getElementById('game-container');
     const scoreText = document.getElementById('score');
     
-    let birdY = 300;
-    let velocity = 0;
-    let gravity = 0.25;
-    let jump = -5.5;
-    let score = 0;
-    let isGameRunning = false;
-    let pipes = [];
-    let frameId;
+    let birdY, velocity, score, isGameRunning, pipes, frameId;
+    let gameSpeed = 3;
+    let currentGap = 180; // Начальный большой зазор
 
     function startGame() {
         isGameRunning = true;
         score = 0;
         birdY = window.innerHeight / 2;
         velocity = 0;
+        gameSpeed = 3;
+        currentGap = 180;
         scoreText.innerText = "0";
-        document.getElementById('start-screen').style.display = 'none';
-        document.getElementById('over-screen').style.display = 'none';
+        container.style.background = "var(--sky-day)";
+        document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
         
-        // Очистка старых труб
-        pipes.forEach(p => p.top.remove() || p.bottom.remove());
+        pipes.forEach(p => { p.top.remove(); p.bottom.remove(); });
         pipes = [];
         
         requestAnimationFrame(update);
     }
 
     function createPipe() {
-        const gap = 160;
-        const minPipeHeight = 50;
-        const maxPipeHeight = window.innerHeight - gap - minPipeHeight - 100;
-        const topHeight = Math.floor(Math.random() * maxPipeHeight) + minPipeHeight;
+        // Усложнение: зазор уменьшается до минимума в 110px
+        currentGap = Math.max(110, 180 - Math.floor(score / 3) * 5);
+        
+        const minH = 60;
+        const maxH = window.innerHeight - currentGap - minH - 100;
+        const topH = Math.floor(Math.random() * maxH) + minH;
 
-        const topPipe = document.createElement('div');
-        topPipe.className = 'pipe top';
-        topPipe.style.height = topHeight + 'px';
-        topPipe.style.left = window.innerWidth + 'px';
-        topPipe.innerHTML = '<div class="pipe-cap"></div>';
+        const top = document.createElement('div');
+        top.className = 'pipe top';
+        top.style.height = topH + 'px';
+        top.style.left = window.innerWidth + 'px';
+        top.innerHTML = '<div class="pipe-cap"></div><div class="lights"></div>';
 
-        const bottomPipe = document.createElement('div');
-        bottomPipe.className = 'pipe bottom';
-        bottomPipe.style.height = (window.innerHeight - topHeight - gap - 60) + 'px';
-        bottomPipe.style.bottom = '60px';
-        bottomPipe.style.left = window.innerWidth + 'px';
-        bottomPipe.innerHTML = '<div class="pipe-cap"></div>';
+        const bottom = document.createElement('div');
+        bottom.className = 'pipe bottom';
+        bottom.style.height = (window.innerHeight - topH - currentGap - 80) + 'px';
+        bottom.style.bottom = '80px';
+        bottom.style.left = window.innerWidth + 'px';
+        bottom.innerHTML = '<div class="pipe-cap"></div><div class="lights"></div>';
 
-        container.appendChild(topPipe);
-        container.appendChild(bottomPipe);
+        container.appendChild(top);
+        container.appendChild(bottom);
+        pipes.push({ x: window.innerWidth, top, bottom, passed: false });
+    }
 
-        pipes.push({
-            x: window.innerWidth,
-            top: topPipe,
-            bottom: bottomPipe,
-            passed: false
-        });
+    function createSnow() {
+        if (Math.random() > 0.1) return;
+        const snow = document.createElement('div');
+        snow.className = 'snowflake';
+        snow.innerHTML = '❄';
+        snow.style.left = Math.random() * 100 + 'vw';
+        snow.style.animationDuration = (Math.random() * 3 + 2) + 's';
+        snow.style.opacity = Math.random();
+        container.appendChild(snow);
+        setTimeout(() => snow.remove(), 5000);
     }
 
     function update() {
         if (!isGameRunning) return;
 
-        velocity += gravity;
+        createSnow();
+
+        velocity += 0.25;
         birdY += velocity;
         bird.style.transform = `translateY(${birdY}px) rotate(${Math.min(velocity * 4, 90)}deg)`;
 
-        // Проверка столкновения с полом/потолком
-        if (birdY > window.innerHeight - 88 || birdY < 0) return gameOver();
+        if (birdY > window.innerHeight - 104 || birdY < 0) return gameOver();
 
-        // Управление трубами
-        if (pipes.length === 0 || pipes[pipes.length - 1].x < window.innerWidth - 200) {
+        // Усложнение: скорость растет
+        gameSpeed = 3 + (score * 0.1);
+
+        if (pipes.length === 0 || pipes[pipes.length - 1].x < window.innerWidth - 220) {
             createPipe();
         }
 
-        pipes.forEach((pipe, index) => {
-            pipe.x -= 3.5; // Скорость труб
+        pipes.forEach((pipe, i) => {
+            pipe.x -= gameSpeed;
             pipe.top.style.left = pipe.x + 'px';
             pipe.bottom.style.left = pipe.x + 'px';
 
-            // Столкновение с трубами
-            const birdRect = bird.getBoundingClientRect();
-            const topRect = pipe.top.getBoundingClientRect();
-            const botRect = pipe.bottom.getBoundingClientRect();
+            const b = bird.getBoundingClientRect();
+            const t = pipe.top.getBoundingClientRect();
+            const bt = pipe.bottom.getBoundingClientRect();
 
-            if (birdRect.right > topRect.left && birdRect.left < topRect.right) {
-                if (birdRect.top < topRect.bottom || birdRect.bottom > botRect.top) {
-                    gameOver();
-                }
+            if (b.right > t.left && b.left < t.right && (b.top < t.bottom || b.bottom > bt.top)) {
+                gameOver();
             }
 
-            // Очки
             if (!pipe.passed && pipe.x < 50) {
                 pipe.passed = true;
                 score++;
                 scoreText.innerText = score;
                 tg.HapticFeedback.impactOccurred('medium');
+
+                // Смена дня и ночи каждые 15 очков
+                if (score % 30 === 15) container.style.background = "var(--sky-night)";
+                if (score % 30 === 0) container.style.background = "var(--sky-day)";
             }
 
-            // Удаление труб
-            if (pipe.x < -100) {
-                pipe.top.remove();
-                pipe.bottom.remove();
-                pipes.splice(index, 1);
+            if (pipe.x < -70) {
+                pipe.top.remove(); pipe.bottom.remove();
+                pipes.splice(i, 1);
             }
         });
 
@@ -291,18 +241,20 @@
         document.getElementById('final-score').innerText = "Счет: " + score;
     }
 
-    // Мгновенный прыжок
-    const handleAction = (e) => {
+    const jump = (e) => {
         if (!isGameRunning) return;
-        velocity = jump;
+        velocity = -5.5;
         tg.HapticFeedback.impactOccurred('light');
-        e.preventDefault();
+        if(e) e.preventDefault();
     };
 
-    window.addEventListener('touchstart', handleAction, { passive: false });
-    window.addEventListener('mousedown', (e) => {
-        if (e.button === 0) handleAction(e);
-    });
+    window.addEventListener('touchstart', jump, { passive: false });
+    window.addEventListener('mousedown', (e) => { if(e.button === 0) jump(); });
+    
+    // Начальная загрузка
+    birdY = window.innerHeight / 2;
+    pipes = [];
+    isGameRunning = false;
 </script>
 </body>
 </html>
