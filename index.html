@@ -3,23 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Flappy Bird Online</title>
+    <title>Ghosty Jump Online</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; padding: 0; background: #000; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; font-family: 'Press Start 2P', cursive; touch-action: none; -webkit-tap-highlight-color: transparent; }
-        #game-container { position: relative; width: 100vw; height: 100vh; background: #70c5ce url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/background-day.png') bottom center; background-size: cover; overflow: hidden; }
-        #bird { position: absolute; width: 34px; height: 24px; background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/yellowbird-midflap.png') no-repeat; background-size: contain; z-index: 100; transform: translateZ(0); }
-        #bird::after { content: '🎅'; position: absolute; top: -18px; left: -4px; font-size: 20px; }
+        #game-container { position: relative; width: 100vw; height: 100vh; background: #1a1a2e url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/background-night.png') bottom center; background-size: cover; overflow: hidden; }
+        
+        #bird { 
+            position: absolute; 
+            width: 40px; 
+            height: 40px; 
+            background: url('https://i.ibb.co/VpkByYv/ghost-sprite.png') no-repeat;
+            background-size: contain; 
+            z-index: 100; 
+            filter: drop-shadow(0 0 8px rgba(255,255,255,0.6));
+        }
+        
+        #bird::after { content: '🎅'; position: absolute; top: -15px; left: 8px; font-size: 18px; }
+        
         .pipe { position: absolute; width: 52px; background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/pipe-green.png') repeat-y; background-size: 52px auto; z-index: 50; border: 2px solid #000; }
-        .pipe.top { transform: rotate(180deg); filter: hue-rotate(140deg); }
-        #ground { position: absolute; bottom: 0; width: 200%; height: 100px; background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/base.png') repeat-x; background-size: contain; z-index: 150; }
-        #score-display { position: absolute; top: 10%; width: 100%; text-align: center; font-size: 40px; color: #fff; text-shadow: 4px 4px 0 #000; z-index: 200; display: none; pointer-events: none; }
-        .screen { position: absolute; inset: 0; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; color: #fff; }
-        .leaderboard { background: #ded895; border: 4px solid #558022; padding: 15px; width: 260px; color: #000; margin-bottom: 20px; box-shadow: 6px 6px 0 #000; }
-        .row { display: flex; justify-content: space-between; font-size: 10px; margin: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.1); }
-        .btn-start { background: #e63946; color: #fff; border: 4px solid #fff; padding: 20px 40px; cursor: pointer; font-family: 'Press Start 2P', cursive; box-shadow: 4px 4px 0 #000; font-size: 16px; position: relative; pointer-events: auto; }
-        .btn-start:active { transform: scale(0.95); box-shadow: 2px 2px 0 #000; }
+        .pipe.top { transform: rotate(180deg); filter: hue-rotate(250deg) brightness(0.7); }
+        .pipe.bottom { filter: hue-rotate(250deg) brightness(0.7); }
+        
+        #ground { position: absolute; bottom: 0; width: 200%; height: 100px; background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/base.png') repeat-x; background-size: contain; z-index: 150; filter: grayscale(1) invert(1) opacity(0.3); }
+        
+        #score-display { position: absolute; top: 10%; width: 100%; text-align: center; font-size: 40px; color: #fff; text-shadow: 4px 4px 0 #9b59b6; z-index: 200; display: none; pointer-events: none; }
+        
+        .screen { position: absolute; inset: 0; background: rgba(10, 10, 25, 0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; color: #fff; text-align: center; }
+        .leaderboard { background: #242442; border: 3px solid #9b59b6; padding: 15px; width: 280px; color: #fff; margin-bottom: 10px; box-shadow: 0 0 15px rgba(155, 89, 182, 0.5); }
+        .row { display: flex; justify-content: space-between; font-size: 10px; margin: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; }
+        .row.me { color: #f1c40f; text-shadow: 0 0 5px #f1c40f; font-weight: bold; }
+        
+        .call-to-action { font-size: 8px; color: #9b59b6; margin-bottom: 20px; text-transform: uppercase; animation: blink 1.5s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .btn-start { background: #9b59b6; color: #fff; border: none; padding: 18px 35px; cursor: pointer; font-family: 'Press Start 2P', cursive; box-shadow: 0 4px 0 #6c3483; font-size: 16px; border-radius: 4px; }
+        .btn-start:active { transform: translateY(4px); box-shadow: none; }
     </style>
 </head>
 <body>
@@ -28,9 +48,12 @@
     <div id="bird"></div>
     <div id="ground"></div>
     <div id="menu" class="screen">
-        <h1 style="color: #ffb703; font-size: 18px; margin-bottom: 20px; text-align:center;">WORLD TOP</h1>
-        <div class="leaderboard"><div id="scores-list"><div class="row">Загрузка...</div></div></div>
-        <div class="btn-start" id="start-btn">START</div>
+        <h1 style="color: #fff; font-size: 16px; margin-bottom: 15px; letter-spacing: 2px;">WORLD RANKINGS</h1>
+        <div class="leaderboard">
+            <div id="scores-list"><div class="row">Loading...</div></div>
+        </div>
+        <div class="call-to-action">Set your personal best!</div>
+        <div class="btn-start" id="start-btn">PLAY NOW</div>
     </div>
 </div>
 
@@ -38,45 +61,70 @@
     const tg = window.Telegram.WebApp;
     tg.expand(); tg.ready();
 
-    const DB_URL = "https://birdgame-1649d-default-rtdb.firebaseio.com/scores.json";
+    // Ссылка на твою базу Firebase
+    const BASE_DB_URL = "https://birdgame-1649d-default-rtdb.firebaseio.com/users";
 
     const bird = document.getElementById('bird'), container = document.getElementById('game-container'), scoreDisplay = document.getElementById('score-display'), menu = document.getElementById('menu'), startBtn = document.getElementById('start-btn'), scoresList = document.getElementById('scores-list'), ground = document.getElementById('ground');
     
     let birdY, velocity, score, isRunning = false, pipes = [], frameId, groundX = 0;
-    const gravity = 0.25, jump = -5.0;
+    const gravity = 0.22, jump = -4.8;
+    const userId = tg.initDataUnsafe?.user?.id || "local_user";
+    const firstName = tg.initDataUnsafe?.user?.first_name || "Ghost";
 
+    // ЗАГРУЗКА: берем всех, сортируем по очкам и берем топ-5
     async function loadWorldScores() {
         try {
-            const res = await fetch(DB_URL);
+            const res = await fetch(`${BASE_DB_URL}.json`);
             const data = await res.json();
-            if (!data) { scoresList.innerHTML = '<div class="row">Будь первым!</div>'; return; }
-            const sorted = Object.values(data).sort((a, b) => b.score - a.score).slice(0, 5);
-            scoresList.innerHTML = sorted.map((r, i) => `<div class="row"><span>${i+1}.${r.name.substring(0,10)}</span><span>${r.score}</span></div>`).join('');
-        } catch (e) { scoresList.innerHTML = '<div class="row">Ошибка сети</div>'; }
+            if (!data) { scoresList.innerHTML = '<div class="row">No records yet!</div>'; return; }
+            
+            // Теперь в данных гарантированно один результат на ID, так как мы пишем через PUT /userId
+            const sorted = Object.values(data)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 5);
+
+            scoresList.innerHTML = sorted.map((r, i) => `
+                <div class="row ${r.id == userId ? 'me' : ''}">
+                    <span>#${i+1} ${r.name.substring(0,10)}</span>
+                    <span>${r.score}</span>
+                </div>
+            `).join('');
+        } catch (e) { scoresList.innerHTML = '<div class="row">Database error</div>'; }
     }
 
+    // СОХРАНЕНИЕ: Обновляем только если новый счет выше текущего рекорда этого игрока
     async function saveWorldScore(s) {
         if (s <= 0) return;
-        const name = (tg.initDataUnsafe?.user?.first_name || 'Игрок').toUpperCase();
-        await fetch(DB_URL, { method: 'POST', body: JSON.stringify({ name, score: s, date: Date.now() }) });
+        try {
+            // Проверяем текущую запись игрока в его персональной папке
+            const checkRes = await fetch(`${BASE_DB_URL}/${userId}.json`);
+            const currentRecord = await checkRes.json();
+            
+            // Если данных нет или новый счет больше старого — обновляем
+            if (!currentRecord || s > currentRecord.score) {
+                await fetch(`${BASE_DB_URL}/${userId}.json`, {
+                    method: 'PUT', // PUT перезаписывает данные по конкретному адресу
+                    body: JSON.stringify({ 
+                        id: userId, 
+                        name: firstName, 
+                        score: s, 
+                        date: Date.now() 
+                    })
+                });
+            }
+        } catch (e) { console.error(e); }
     }
 
     function initGame() {
         if (isRunning) return;
-        isRunning = true; 
-        score = 0; 
-        birdY = window.innerHeight / 2.5; 
-        velocity = 0;
-        pipes.forEach(p => { p.t.remove(); p.b.remove(); }); 
-        pipes = [];
-        scoreDisplay.innerText = "0"; 
-        scoreDisplay.style.display = 'block'; 
-        menu.style.display = 'none';
+        isRunning = true; score = 0; birdY = window.innerHeight / 2.5; velocity = 0;
+        pipes.forEach(p => { p.t.remove(); p.b.remove(); }); pipes = [];
+        scoreDisplay.innerText = "0"; scoreDisplay.style.display = 'block'; menu.style.display = 'none';
         requestAnimationFrame(update);
     }
 
     function createPipe() {
-        const gap = 165, topH = Math.floor(Math.random() * (window.innerHeight - 450)) + 50;
+        const gap = 180, topH = Math.floor(Math.random() * (window.innerHeight - 450)) + 50;
         const t = document.createElement('div'); t.className = 'pipe top'; t.style.height = topH + 'px'; t.style.left = window.innerWidth + 'px';
         const b = document.createElement('div'); b.className = 'pipe bottom'; b.style.height = (window.innerHeight - topH - gap - 100) + 'px'; b.style.bottom = '100px'; b.style.left = window.innerWidth + 'px';
         container.appendChild(t); container.appendChild(b);
@@ -85,22 +133,21 @@
 
     function update() {
         if (!isRunning) return;
-
-        // Анимация земли
-        groundX -= 3.5;
+        groundX -= 2.5;
         if (groundX <= -window.innerWidth) groundX = 0;
         ground.style.transform = `translateX(${groundX}px)`;
-
-        velocity += gravity; birdY += velocity;
-        bird.style.transform = `translateY(${birdY}px) rotate(${Math.min(velocity * 5, 90)}deg)`;
         
-        if (birdY > window.innerHeight - 124 || birdY < -50) return die();
-        if (pipes.length === 0 || pipes[pipes.length-1].x < window.innerWidth - 220) createPipe();
+        velocity += gravity; birdY += velocity;
+        const rotation = Math.min(velocity * 3, 25);
+        bird.style.transform = `translateY(${birdY}px) rotate(${rotation}deg)`;
+        
+        if (birdY > window.innerHeight - 130 || birdY < -50) return die();
+        if (pipes.length === 0 || pipes[pipes.length - 1].x < window.innerWidth - 240) createPipe();
         
         pipes.forEach((p, i) => {
-            p.x -= 3.5; p.t.style.left = p.x + 'px'; p.b.style.left = p.x + 'px';
+            p.x -= 3; p.t.style.left = p.x + 'px'; p.b.style.left = p.x + 'px';
             const br = bird.getBoundingClientRect(), tr = p.t.getBoundingClientRect(), brr = p.b.getBoundingClientRect();
-            if (br.right-6 > tr.left && br.left+6 < tr.right && (br.top+6 < tr.bottom || br.bottom-6 > brr.top)) die();
+            if (br.right-12 > tr.left && br.left+12 < tr.right && (br.top+8 < tr.bottom || br.bottom-8 > brr.top)) die();
             if (!p.p && p.x < 50) { p.p = true; score++; scoreDisplay.innerText = score; tg.HapticFeedback.impactOccurred('medium'); }
             if (p.x < -60) { p.t.remove(); p.b.remove(); pipes.splice(i, 1); }
         });
@@ -111,33 +158,19 @@
         isRunning = false; cancelAnimationFrame(frameId);
         tg.HapticFeedback.notificationOccurred('error');
         await saveWorldScore(score);
-        loadWorldScores();
+        await loadWorldScores();
         menu.style.display = 'flex';
         scoreDisplay.style.display = 'none';
     }
 
-    // ИСПРАВЛЕННЫЙ ОБРАБОТЧИК КНОПКИ
-    startBtn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        initGame();
-    }, { passive: false });
+    const startAction = (e) => { e.preventDefault(); e.stopPropagation(); initGame(); };
+    startBtn.addEventListener('touchend', startAction);
+    startBtn.addEventListener('click', startAction);
 
-    startBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        initGame();
-    });
-
-    // Прыжок
     const jumpAction = (e) => { 
-        if(isRunning) { 
-            velocity = jump; 
-            tg.HapticFeedback.impactOccurred('light'); 
-        } 
+        if(isRunning) { velocity = jump; tg.HapticFeedback.impactOccurred('light'); } 
         if(e.type === 'touchstart' && isRunning) e.preventDefault(); 
     };
-
     window.addEventListener('touchstart', jumpAction, {passive: false});
     window.addEventListener('mousedown', jumpAction);
 
