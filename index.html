@@ -3,88 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Ghosty: Dark Fantasy</title>
+    <title>Ghosty: Dark Fantasy Fixed</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-dark: #050508;
             --accent-purple: #4b0082;
-            --ghost-white: rgba(255, 255, 255, 0.9);
             --neon-blue: #00d4ff;
         }
 
-        body { margin: 0; padding: 0; background: var(--bg-dark); overflow: hidden; font-family: 'Press Start 2P', cursive; touch-action: none; color: white; }
+        body { margin: 0; padding: 0; background: var(--bg-dark); overflow: hidden; font-family: 'Press Start 2P', cursive; touch-action: none; color: white; -webkit-user-select: none; }
         
-        /* Многослойный фон в стиле Dark Fantasy */
-        #game-container { 
-            position: relative; width: 100vw; height: 100vh; 
-            background: linear-gradient(to bottom, #0a0a1a, #1a0a2e);
-            overflow: hidden; 
-        }
+        #game-container { position: relative; width: 100vw; height: 100vh; background: #0a0a1a; overflow: hidden; }
 
-        /* Слой с пиксельными горами/замками (параллакс эффект через анимацию) */
+        /* Декоративные слои - ОБЯЗАТЕЛЬНО pointer-events: none */
         #background-layer {
-            position: absolute; bottom: 0; width: 200%; height: 60%;
+            position: absolute; bottom: 0; width: 200%; height: 50%;
             background: url('https://img.freepik.com/free-vector/pixel-art-castle-night_52683-122416.jpg') repeat-x bottom;
-            background-size: contain; opacity: 0.3; animation: scrollBg 40s linear infinite;
+            background-size: contain; opacity: 0.2; pointer-events: none; z-index: 1;
         }
 
-        /* Туман */
         #fog-layer {
-            position: absolute; bottom: 0; width: 200%; height: 100%;
-            background: radial-gradient(circle at 50% 100%, rgba(75, 0, 130, 0.2), transparent 70%);
-            filter: blur(20px); animation: drift 10s ease-in-out infinite alternate;
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 50% 100%, rgba(75, 0, 130, 0.3), transparent 70%);
+            pointer-events: none; z-index: 2;
         }
 
-        /* Призрак (Базовый) */
+        /* Призрак */
         #bird { 
             position: absolute; width: 45px; height: 45px; z-index: 100; left: 60px;
             background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M20,80 Q20,20 50,20 Q80,20 80,80 Q70,70 60,80 Q50,70 40,80 Q30,70 20,80' fill='white' opacity='0.9'/><circle cx='35' cy='45' r='5' fill='black'/><circle cx='65' cy='45' r='5' fill='black'/></svg>") no-repeat;
-            background-size: contain; display: none;
+            background-size: contain; display: none; pointer-events: none;
         }
         #hat-overlay { position: absolute; top: -15px; left: 5px; font-size: 26px; z-index: 101; pointer-events: none; }
 
-        /* Костюмы (Ауры) */
+        /* Скины */
         .skin-default { filter: drop-shadow(0 0 10px #fff); }
         .skin-cyber { filter: drop-shadow(0 0 15px #bc13fe) hue-rotate(280deg); }
         .skin-viking { filter: drop-shadow(0 0 10px #888) sepia(0.5); }
         .skin-royal { filter: drop-shadow(0 0 15px #ffd700); }
         .skin-ninja { filter: grayscale(1) brightness(0.4) drop-shadow(0 0 5px #fff); }
 
-        /* Готические Колонны */
-        .pipe { 
-            position: absolute; width: 60px; z-index: 50;
-            background: linear-gradient(90deg, #1a1a1a 0%, #333 50%, #1a1a1a 100%);
-            border-left: 4px solid #4b0082; border-right: 4px solid #4b0082;
-            box-shadow: 0 0 20px rgba(75, 0, 130, 0.4);
-        }
-        .pipe::before { /* Навершие колонны */
-            content: ''; position: absolute; width: 76px; height: 15px; 
-            background: #4b0082; left: -12px; border: 2px solid #000;
-        }
-        .pipe.top { border-radius: 0 0 8px 8px; }
-        .pipe.top::before { bottom: 0; }
-        .pipe.bottom { border-radius: 8px 8px 0 0; }
-        .pipe.bottom::before { top: 0; }
+        /* Колонны */
+        .pipe { position: absolute; width: 60px; z-index: 50; background: #1a1a1a; border-left: 4px solid #4b0082; border-right: 4px solid #4b0082; pointer-events: none; }
 
         /* Интерфейс */
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 500; }
-        #score-display { position: absolute; top: 10%; width: 100%; text-align: center; font-size: 32px; display: none; text-shadow: 0 0 15px var(--accent-purple); }
-        #currency { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.8); padding: 10px; border: 2px solid var(--accent-purple); border-radius: 12px; color: var(--neon-blue); font-size: 10px; display: flex; align-items: center; gap: 8px; }
+        #score-display { position: absolute; top: 10%; width: 100%; text-align: center; font-size: 30px; z-index: 200; display: none; text-shadow: 0 0 10px #000; pointer-events: none; }
+        #currency { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.8); padding: 10px; border: 2px solid var(--accent-purple); border-radius: 12px; color: var(--neon-blue); font-size: 10px; z-index: 1000; pointer-events: none; }
 
-        .screen { position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
-        .btn { background: var(--accent-purple); color: white; border: none; padding: 20px; cursor: pointer; font-family: inherit; font-size: 12px; margin: 10px; width: 240px; border-bottom: 5px solid #300050; }
+        /* Экраны */
+        .screen { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; }
+        
+        /* Кнопки */
+        .btn { 
+            background: var(--accent-purple); color: white; border: none; 
+            padding: 20px; cursor: pointer; font-family: inherit; font-size: 12px; 
+            margin: 10px; width: 240px; border-bottom: 5px solid #300050;
+            pointer-events: auto !important; /* Принудительно включаем клики */
+            position: relative; z-index: 2001;
+        }
         .btn:active { transform: translateY(3px); border-bottom: 2px solid #300050; }
 
-        /* Сетка магазина */
-        .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
-        .shop-item { background: #111; border: 2px solid #333; padding: 15px; width: 110px; text-align: center; cursor: pointer; }
-        .shop-item.owned { border-color: #2ecc71; }
-        .shop-item.equipped { border-color: var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); }
-
-        @keyframes scrollBg { from { background-position: 0 100%; } to { background-position: -1000px 100%; } }
-        @keyframes drift { from { transform: translateX(-5%); } to { transform: translateX(5%); } }
+        .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; pointer-events: auto; }
+        .shop-item { background: #111; border: 2px solid #333; padding: 10px; width: 110px; text-align: center; cursor: pointer; pointer-events: auto; }
+        .shop-item.equipped { border-color: var(--neon-blue); }
     </style>
 </head>
 <body>
@@ -93,26 +76,23 @@
     <div id="background-layer"></div>
     <div id="fog-layer"></div>
     
-    <div id="ui-layer">
-        <div id="currency">💎 <span id="orb-count">0</span></div>
-        <div id="score-display">0</div>
-    </div>
-
+    <div id="currency">💎 <span id="orb-count">0</span></div>
+    <div id="score-display">0</div>
     <div id="bird"><div id="hat-overlay"></div></div>
 
     <div id="menu" class="screen">
-        <h1 style="color:var(--accent-purple); font-size:18px; margin-bottom:30px;">NEON CRYPT</h1>
-        <div id="leaderboard" style="font-size:9px; background:#111; padding:15px; width:250px; border:1px solid #333; margin-bottom:20px;">
-            Loading spirits...
+        <h1 style="color:var(--accent-purple); font-size:16px; margin-bottom:20px;">NEON CRYPT</h1>
+        <div id="leaderboard" style="font-size:8px; background:#111; padding:10px; width:240px; border:1px solid #333; margin-bottom:20px; pointer-events:none;">
+            Loading...
         </div>
-        <button class="btn" onclick="startGame()">ENTER THE CRYPT</button>
-        <button class="btn" onclick="openShop()" style="background:#2980b9;">GHOST SHOP</button>
+        <button class="btn" id="play-btn">START GAME</button>
+        <button class="btn" id="shop-btn" style="background:#2980b9; border-bottom-color:#1a5276;">SHOP</button>
     </div>
 
     <div id="shop" class="screen" style="display:none">
-        <h2 style="font-size:12px;">EVOLVE GHOST</h2>
+        <h2 style="font-size:12px;">SKINS</h2>
         <div class="shop-grid" id="shop-items"></div>
-        <button class="btn" onclick="closeShop()">BACK</button>
+        <button class="btn" id="back-btn">BACK</button>
     </div>
 </div>
 
@@ -125,24 +105,19 @@
     const scoreDisp = document.getElementById('score-display'), orbDisp = document.getElementById('orb-count');
     
     let birdY, vel, score, isPlay = false, pipes = [], loop;
-    
-    // Данные
-    let orbs = parseInt(localStorage.getItem('ghost_orbs')) || 0;
-    let mySkins = JSON.parse(localStorage.getItem('ghost_skins')) || ['DEFAULT'];
-    let curSkin = localStorage.getItem('ghost_cur_skin') || 'DEFAULT';
+    let orbs = parseInt(localStorage.getItem('gh_orbs_v2')) || 0;
+    let mySkins = JSON.parse(localStorage.getItem('gh_skins_v2')) || ['DEFAULT'];
+    let curSkin = localStorage.getItem('gh_cur_skin_v2') || 'DEFAULT';
 
     const skinList = [
         { id: 'DEFAULT', name: 'SOUL', emoji: '', price: 0, class: 'skin-default' },
-        { id: 'CYBER', name: 'CYBER', emoji: '🕶️', price: 25, class: 'skin-cyber' },
-        { id: 'VIKING', name: 'VIKING', emoji: '🪖', price: 50, class: 'skin-viking' },
-        { id: 'ROYAL', name: 'ROYAL', emoji: '👑', price: 100, class: 'skin-royal' },
-        { id: 'NINJA', name: 'NINJA', emoji: '🥷', price: 150, class: 'skin-ninja' }
+        { id: 'CYBER', name: 'CYBER', emoji: '🕶️', price: 20, class: 'skin-cyber' },
+        { id: 'VIKING', name: 'VIKING', emoji: '🪖', price: 40, class: 'skin-viking' },
+        { id: 'ROYAL', name: 'ROYAL', emoji: '👑', price: 80, class: 'skin-royal' },
+        { id: 'NINJA', name: 'NINJA', emoji: '🥷', price: 120, class: 'skin-ninja' }
     ];
 
-    const uid = tg.initDataUnsafe?.user?.id || "local";
-    const uName = tg.initDataUnsafe?.user?.first_name || "Ghost";
-
-    function refreshSkins() {
+    function updateStats() {
         orbDisp.innerText = orbs;
         const s = skinList.find(x => x.id === curSkin);
         bird.className = s.class;
@@ -150,20 +125,21 @@
     }
 
     function renderShop() {
-        document.getElementById('shop-items').innerHTML = skinList.map(s => {
-            const isOwned = mySkins.includes(s.id);
-            const isEquipped = curSkin === s.id;
+        const container = document.getElementById('shop-items');
+        container.innerHTML = skinList.map(s => {
+            const owned = mySkins.includes(s.id);
+            const active = curSkin === s.id;
             return `
-                <div class="shop-item ${isOwned ? 'owned' : ''} ${isEquipped ? 'equipped' : ''}" onclick="selectSkin('${s.id}')">
-                    <div style="font-size:24px">${s.emoji || '👻'}</div>
-                    <div style="font-size:7px; margin-top:8px;">${s.name}</div>
-                    <div style="font-size:8px; color:#00d4ff; margin-top:5px;">${isOwned ? (isEquipped ? 'USE' : 'OWNED') : s.price + ' 💎'}</div>
+                <div class="shop-item ${active ? 'equipped' : ''}" onclick="selectSkin('${s.id}')">
+                    <div style="font-size:20px">${s.emoji || '👻'}</div>
+                    <div style="font-size:7px; margin:5px 0;">${s.name}</div>
+                    <div style="font-size:8px; color:#00d4ff">${owned ? (active ? 'USE' : 'OWN') : s.price+'💎'}</div>
                 </div>
             `;
         }).join('');
     }
 
-    function selectSkin(id) {
+    window.selectSkin = (id) => {
         const s = skinList.find(x => x.id === id);
         if (mySkins.includes(id)) {
             curSkin = id;
@@ -173,38 +149,24 @@
             mySkins.push(id);
             curSkin = id;
             tg.HapticFeedback.notificationOccurred('success');
-        } else {
-            tg.HapticFeedback.notificationOccurred('error');
-            return;
         }
-        localStorage.setItem('ghost_orbs', orbs);
-        localStorage.setItem('ghost_skins', JSON.stringify(mySkins));
-        localStorage.setItem('ghost_cur_skin', curSkin);
-        refreshSkins(); renderShop();
-    }
+        localStorage.setItem('gh_orbs_v2', orbs);
+        localStorage.setItem('gh_skins_v2', JSON.stringify(mySkins));
+        localStorage.setItem('gh_cur_skin_v2', curSkin);
+        updateStats(); renderShop();
+    };
 
-    function openShop() { document.getElementById('shop').style.display = 'flex'; renderShop(); }
-    function closeShop() { document.getElementById('shop').style.display = 'none'; }
-
-    // --- ЛОГИКА ИГРЫ ---
-    async function loadBoard() {
-        try {
-            const r = await fetch(`${DB_URL}.json`);
-            const d = await r.json();
-            if(!d) return;
-            const top = Object.values(d).sort((a,b) => b.score - a.score).slice(0, 5);
-            document.getElementById('leaderboard').innerHTML = top.map((p, i) => 
-                `<div style="display:flex; justify-content:space-between; margin:5px 0;"><span>#${i+1} ${p.name}</span><span>${p.score}</span></div>`
-            ).join('');
-        } catch(e) {}
-    }
+    // События кнопок (Прямое назначение)
+    document.getElementById('play-btn').onclick = () => startGame();
+    document.getElementById('shop-btn').onclick = () => { document.getElementById('shop').style.display='flex'; renderShop(); };
+    document.getElementById('back-btn').onclick = () => { document.getElementById('shop').style.display='none'; };
 
     function startGame() {
         isPlay = true; score = 0; birdY = window.innerHeight/2; vel = 0;
         pipes.forEach(p => { p.t.remove(); p.b.remove(); }); pipes = [];
         scoreDisp.innerText = "0"; scoreDisp.style.display = 'block';
         document.getElementById('menu').style.display = 'none';
-        bird.style.display = 'block'; refreshSkins();
+        bird.style.display = 'block'; updateStats();
         requestAnimationFrame(gameLoop);
     }
 
@@ -217,29 +179,23 @@
         if (birdY > window.innerHeight - 50 || birdY < -20) return gameOver();
 
         if (pipes.length === 0 || pipes[pipes.length-1].x < window.innerWidth - 220) {
-            const gap = 170, min = 60;
-            const topH = Math.random() * (window.innerHeight - gap - 200) + min;
+            const gap = 180;
+            const topH = Math.random() * (window.innerHeight - gap - 200) + 60;
             const botH = window.innerHeight - topH - gap;
-
-            const t = document.createElement('div'); t.className = 'pipe top'; t.style.height = topH + 'px'; t.style.top = '0'; t.style.left = window.innerWidth + 'px';
-            const b = document.createElement('div'); b.className = 'pipe bottom'; b.style.height = botH + 'px'; b.style.bottom = '0'; b.style.left = window.innerWidth + 'px';
-            
-            document.getElementById('game-container').appendChild(t);
-            document.getElementById('game-container').appendChild(b);
+            const t = document.createElement('div'); t.className = 'pipe'; t.style.height = topH + 'px'; t.style.top = '0'; t.style.left = window.innerWidth + 'px';
+            const b = document.createElement('div'); b.className = 'pipe'; b.style.height = botH + 'px'; b.style.bottom = '0'; b.style.left = window.innerWidth + 'px';
+            document.getElementById('game-container').appendChild(t); document.getElementById('game-container').appendChild(b);
             pipes.push({x: window.innerWidth, t, b, pass: false});
         }
 
         pipes.forEach((p, i) => {
-            p.x -= 3.5;
-            p.t.style.left = p.x + 'px'; p.b.style.left = p.x + 'px';
-            
+            p.x -= 3.5; p.t.style.left = p.x + 'px'; p.b.style.left = p.x + 'px';
             const br = bird.getBoundingClientRect(), tr = p.t.getBoundingClientRect(), brr = p.b.getBoundingClientRect();
             if (br.right-10 > tr.left && br.left+10 < tr.right && (br.top+10 < tr.bottom || br.bottom-10 > brr.top)) gameOver();
-            
             if (!p.pass && p.x < 60) { 
                 p.pass = true; score++; orbs++; 
                 scoreDisp.innerText = score; orbDisp.innerText = orbs;
-                localStorage.setItem('ghost_orbs', orbs);
+                localStorage.setItem('gh_orbs_v2', orbs);
                 tg.HapticFeedback.impactOccurred('medium'); 
             }
             if (p.x < -80) { p.t.remove(); p.b.remove(); pipes.splice(i, 1); }
@@ -247,25 +203,46 @@
         loop = requestAnimationFrame(gameLoop);
     }
 
-    async function gameOver() {
+    function gameOver() {
         isPlay = false; cancelAnimationFrame(loop);
         tg.HapticFeedback.notificationOccurred('error');
-        // Save
-        const r = await fetch(`${DB_URL}/${uid}.json`);
-        const cur = await r.json();
-        if (!cur || score > cur.score) {
-            await fetch(`${DB_URL}/${uid}.json`, { method: 'PUT', body: JSON.stringify({id: uid, name: uName, score: score})});
-        }
-        loadBoard();
         document.getElementById('menu').style.display = 'flex';
         scoreDisp.style.display = 'none'; bird.style.display = 'none';
+        saveScore();
     }
 
-    const jump = () => { if(isPlay) vel = -5.3; };
-    window.addEventListener('touchstart', (e) => { jump(); e.preventDefault(); }, {passive: false});
-    window.addEventListener('mousedown', jump);
+    async function saveScore() {
+        const uid = tg.initDataUnsafe?.user?.id || "local";
+        const name = tg.initDataUnsafe?.user?.first_name || "Ghost";
+        try {
+            await fetch(`${DB_URL}/${uid}.json`, { method: 'PATCH', body: JSON.stringify({name: name, score: score})});
+            loadBoard();
+        } catch(e) {}
+    }
 
-    refreshSkins(); loadBoard();
+    async function loadBoard() {
+        try {
+            const r = await fetch(`${DB_URL}.json`);
+            const d = await r.json();
+            if(!d) return;
+            const top = Object.values(d).sort((a,b) => b.score - a.score).slice(0, 5);
+            document.getElementById('leaderboard').innerHTML = top.map((p, i) => 
+                `<div style="display:flex; justify-content:space-between; margin:3px 0;"><span>#${i+1} ${p.name}</span><span>${p.score}</span></div>`
+            ).join('');
+        } catch(e) {}
+    }
+
+    // Управление (прыжок)
+    const handleJump = (e) => { 
+        if(isPlay) {
+            vel = -5.3; 
+            if(e.type === 'touchstart') e.preventDefault(); 
+        }
+    };
+    window.addEventListener('touchstart', handleJump, {passive: false});
+    window.addEventListener('mousedown', handleJump);
+
+    updateStats(); loadBoard();
 </script>
 </body>
 </html>
