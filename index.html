@@ -1,58 +1,78 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My First Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
-            font-family: sans-serif;
-            background-color: var(--tg-theme-bg-color); /* Используем цвета темы TG */
-            color: var(--tg-theme-text-color);
+        body { 
+            background: var(--tg-theme-bg-color); 
+            color: var(--tg-theme-text-color); 
+            text-align: center; 
+            font-family: sans-serif; 
+            margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
-            margin: 0;
+            overflow: hidden;
+            user-select: none; /* Чтобы текст не выделялся при кликах */
         }
-        button {
-            padding: 10px 20px;
-            background-color: var(--tg-theme-button-color);
-            color: var(--tg-theme-button-text-color);
-            border: none;
-            border-radius: 8px;
+        #score {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .coin {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(145deg, #f1c40f, #f39c12);
+            border-radius: 50%;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
             cursor: pointer;
+            transition: transform 0.1s;
+            border: 8px solid #d35400;
+        }
+        .coin:active {
+            transform: scale(0.95);
         }
     </style>
 </head>
 <body>
-    <h1 id="greeting">Привет!</h1>
-    <p>Это твое первое Mini App.</p>
-    <button id="mainButton">Нажми на меня</button>
+
+    <div id="score">0</div>
+    <div class="coin" id="clickBtn">💰</div>
 
     <script>
-        // Инициализация WebApp
         const tg = window.Telegram.WebApp;
-
-        // Расширяем приложение на все окно
         tg.expand();
 
-        // Получаем имя пользователя из данных Telegram
-        const user = tg.initDataUnsafe?.user;
-        if (user) {
-            document.getElementById('greeting').innerText = `Привет, ${user.first_name}!`;
-        }
+        let count = 0;
+        const scoreElement = document.getElementById('score');
+        const clickBtn = document.getElementById('clickBtn');
 
-        // Логика кнопки
-        const btn = document.getElementById('mainButton');
-        btn.addEventListener('click', () => {
-            tg.showAlert("Кнопка нажата! Работает как часы.");
+        // Инициализация главной кнопки для сброса
+        tg.MainButton.text = "ОБНУЛИТЬ СЧЕТ";
+        tg.MainButton.show();
+
+        clickBtn.addEventListener('click', () => {
+            count++;
+            scoreElement.innerText = count;
+            
+            // Легкая вибрация при клике
+            tg.HapticFeedback.impactOccurred('light');
         });
 
-        // Сообщаем Telegram, что приложение готово
-        tg.ready();
+        // Сброс счета при нажатии на кнопку Telegram
+        tg.onEvent('mainButtonClicked', function(){
+            count = 0;
+            scoreElement.innerText = count;
+            tg.HapticFeedback.notificationOccurred('success');
+        });
     </script>
 </body>
 </html>
