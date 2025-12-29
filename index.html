@@ -3,152 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Ghosty Jump Online</title>
+    <title>Ghosty Jump & Shop</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; padding: 0; background: #000; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; font-family: 'Press Start 2P', cursive; touch-action: none; -webkit-tap-highlight-color: transparent; }
         #game-container { position: relative; width: 100vw; height: 100vh; background: #1a1a2e url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/background-night.png') bottom center; background-size: cover; overflow: hidden; }
         
+        /* Наш призрак через SVG (чтобы точно работал) */
         #bird { 
-            position: absolute; 
-            width: 40px; 
-            height: 40px; 
-            background: url('https://i.ibb.co/VpkByYv/ghost-sprite.png') no-repeat;
-            background-size: contain; 
-            z-index: 100; 
-            filter: drop-shadow(0 0 8px rgba(255,255,255,0.6));
+            position: absolute; width: 40px; height: 40px; z-index: 100;
+            background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M20,80 Q20,20 50,20 Q80,20 80,80 Q70,70 60,80 Q50,70 40,80 Q30,70 20,80' fill='white' stroke='rgba(155,89,182,0.5)' stroke-width='2'/><circle cx='40' cy='45' r='5' fill='%23ff69b4'/><circle cx='65' cy='45' r='5' fill='%23ff69b4'/></svg>") no-repeat;
+            background-size: contain; filter: drop-shadow(0 0 5px #fff);
         }
         
-        #bird::after { content: '🎅'; position: absolute; top: -15px; left: 8px; font-size: 18px; }
+        #hat { position: absolute; top: -12px; left: 10px; font-size: 18px; pointer-events: none; }
         
-        .pipe { position: absolute; width: 52px; background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/pipe-green.png') repeat-y; background-size: 52px auto; z-index: 50; border: 2px solid #000; }
-        .pipe.top { transform: rotate(180deg); filter: hue-rotate(250deg) brightness(0.7); }
-        .pipe.bottom { filter: hue-rotate(250deg) brightness(0.7); }
+        .pipe { position: absolute; width: 52px; background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/pipe-green.png') repeat-y; background-size: 52px auto; z-index: 50; border: 2px solid #000; filter: hue-rotate(250deg) brightness(0.7); }
+        .pipe.top { transform: rotate(180deg); }
         
-        #ground { position: absolute; bottom: 0; width: 200%; height: 100px; background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/base.png') repeat-x; background-size: contain; z-index: 150; filter: grayscale(1) invert(1) opacity(0.3); }
-        
-        #score-display { position: absolute; top: 10%; width: 100%; text-align: center; font-size: 40px; color: #fff; text-shadow: 4px 4px 0 #9b59b6; z-index: 200; display: none; pointer-events: none; }
-        
-        .screen { position: absolute; inset: 0; background: rgba(10, 10, 25, 0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; color: #fff; text-align: center; }
-        .leaderboard { background: #242442; border: 3px solid #9b59b6; padding: 15px; width: 280px; color: #fff; margin-bottom: 10px; box-shadow: 0 0 15px rgba(155, 89, 182, 0.5); }
-        .row { display: flex; justify-content: space-between; font-size: 10px; margin: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; }
-        .row.me { color: #f1c40f; text-shadow: 0 0 5px #f1c40f; font-weight: bold; }
-        
-        .call-to-action { font-size: 8px; color: #9b59b6; margin-bottom: 20px; text-transform: uppercase; animation: blink 1.5s infinite; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        #score-display { position: absolute; top: 5%; width: 100%; text-align: center; font-size: 30px; color: #fff; z-index: 200; display: none; text-shadow: 3px 3px 0 #9b59b6; }
+        #coins-display { position: absolute; top: 10px; right: 10px; color: #00d4ff; font-size: 10px; z-index: 200; }
 
-        .btn-start { background: #9b59b6; color: #fff; border: none; padding: 18px 35px; cursor: pointer; font-family: 'Press Start 2P', cursive; box-shadow: 0 4px 0 #6c3483; font-size: 16px; border-radius: 4px; }
-        .btn-start:active { transform: translateY(4px); box-shadow: none; }
+        .screen { position: absolute; inset: 0; background: rgba(10, 10, 25, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; color: #fff; text-align: center; }
+        .leaderboard { background: #242442; border: 3px solid #9b59b6; padding: 10px; width: 260px; margin-bottom: 10px; font-size: 8px; }
+        .row { display: flex; justify-content: space-between; margin: 5px 0; border-bottom: 1px solid #333; }
+
+        .btn { background: #9b59b6; color: #fff; border: none; padding: 15px 30px; cursor: pointer; font-family: 'Press Start 2P', cursive; font-size: 12px; margin: 5px; box-shadow: 0 4px 0 #6c3483; }
+        .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #6c3483; }
+        .btn-shop { background: #2ecc71; box-shadow: 0 4px 0 #27ae60; }
+
+        /* Стили магазина */
+        #shop-screen { display: none; }
+        .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+        .shop-item { background: #242442; border: 2px solid #9b59b6; padding: 10px; width: 100px; font-size: 8px; }
+        .shop-item.owned { border-color: #2ecc71; }
     </style>
 </head>
 <body>
 <div id="game-container">
+    <div id="coins-display">ORBS: <span id="orb-count">0</span></div>
     <div id="score-display">0</div>
-    <div id="bird"></div>
-    <div id="ground"></div>
+    <div id="bird"><div id="hat">🎅</div></div>
+    
     <div id="menu" class="screen">
-        <h1 style="color: #fff; font-size: 16px; margin-bottom: 15px; letter-spacing: 2px;">WORLD RANKINGS</h1>
-        <div class="leaderboard">
-            <div id="scores-list"><div class="row">Loading...</div></div>
+        <h1 style="font-size: 14px;">GHOST WORLD</h1>
+        <div class="leaderboard" id="scores-list">Loading top...</div>
+        <button class="btn" id="start-btn">START GAME</button>
+        <button class="btn btn-shop" id="open-shop">SHOP</button>
+    </div>
+
+    <div id="shop-screen" class="screen">
+        <h2>GHOST SHOP</h2>
+        <div id="shop-balance" style="color:#00d4ff; font-size:10px;">YOUR ORBS: 0</div>
+        <div class="shop-grid">
+            <div class="shop-item" onclick="buyHat('🎅', 0)">🎅<br>FREE</div>
+            <div class="shop-item" onclick="buyHat('👑', 10)">👑<br>10 ORBS</div>
+            <div class="shop-item" onclick="buyHat('🎩', 25)">🎩<br>25 ORBS</div>
+            <div class="shop-item" onclick="buyHat('🏴‍☠️', 50)">🏴‍☠️<br>50 ORBS</div>
         </div>
-        <div class="call-to-action">Set your personal best!</div>
-        <div class="btn-start" id="start-btn">PLAY NOW</div>
+        <button class="btn" onclick="closeShop()" style="margin-top:30px;">BACK</button>
     </div>
 </div>
 
 <script>
     const tg = window.Telegram.WebApp;
-    tg.expand(); tg.ready();
+    tg.ready(); tg.expand();
 
-    // Ссылка на твою базу Firebase
     const BASE_DB_URL = "https://birdgame-1649d-default-rtdb.firebaseio.com/users";
-
-    const bird = document.getElementById('bird'), container = document.getElementById('game-container'), scoreDisplay = document.getElementById('score-display'), menu = document.getElementById('menu'), startBtn = document.getElementById('start-btn'), scoresList = document.getElementById('scores-list'), ground = document.getElementById('ground');
+    const bird = document.getElementById('bird'), hat = document.getElementById('hat'), scoresList = document.getElementById('scores-list');
+    const orbCountDisp = document.getElementById('orb-count'), scoreDisplay = document.getElementById('score-display');
     
-    let birdY, velocity, score, isRunning = false, pipes = [], frameId, groundX = 0;
-    const gravity = 0.22, jump = -4.8;
+    let birdY, velocity, score, orbs = parseInt(localStorage.getItem('orbs')) || 0, isRunning = false;
+    let pipes = [], frameId;
     const userId = tg.initDataUnsafe?.user?.id || "local_user";
     const firstName = tg.initDataUnsafe?.user?.first_name || "Ghost";
 
-    // ЗАГРУЗКА: берем всех, сортируем по очкам и берем топ-5
-    async function loadWorldScores() {
+    orbCountDisp.innerText = orbs;
+
+    // Магазин
+    function buyHat(emoji, price) {
+        if (orbs >= price) {
+            if (price > 0) orbs -= price;
+            localStorage.setItem('orbs', orbs);
+            orbCountDisp.innerText = orbs;
+            hat.innerText = emoji;
+            tg.HapticFeedback.notificationOccurred('success');
+            alert("Hat equipped!");
+        } else {
+            tg.HapticFeedback.notificationOccurred('error');
+            alert("Not enough orbs!");
+        }
+        updateShopBalance();
+    }
+
+    function openShop() { document.getElementById('shop-screen').style.display = 'flex'; updateShopBalance(); }
+    function closeShop() { document.getElementById('shop-screen').style.display = 'none'; }
+    function updateShopBalance() { document.getElementById('shop-balance').innerText = "YOUR ORBS: " + orbs; }
+
+    document.getElementById('open-shop').onclick = openShop;
+
+    // Таблица лидеров
+    async function loadScores() {
         try {
             const res = await fetch(`${BASE_DB_URL}.json`);
             const data = await res.json();
-            if (!data) { scoresList.innerHTML = '<div class="row">No records yet!</div>'; return; }
-            
-            // Теперь в данных гарантированно один результат на ID, так как мы пишем через PUT /userId
-            const sorted = Object.values(data)
-                .sort((a, b) => b.score - a.score)
-                .slice(0, 5);
-
-            scoresList.innerHTML = sorted.map((r, i) => `
-                <div class="row ${r.id == userId ? 'me' : ''}">
-                    <span>#${i+1} ${r.name.substring(0,10)}</span>
-                    <span>${r.score}</span>
-                </div>
-            `).join('');
-        } catch (e) { scoresList.innerHTML = '<div class="row">Database error</div>'; }
+            if (!data) return scoresList.innerHTML = "No ghosts yet";
+            const sorted = Object.values(data).sort((a,b) => b.score - a.score).slice(0, 5);
+            scoresList.innerHTML = sorted.map((r, i) => `<div class="row"><span>#${i+1} ${r.name}</span><span>${r.score}</span></div>`).join('');
+        } catch(e) { scoresList.innerHTML = "Offline mode"; }
     }
 
-    // СОХРАНЕНИЕ: Обновляем только если новый счет выше текущего рекорда этого игрока
-    async function saveWorldScore(s) {
-        if (s <= 0) return;
-        try {
-            // Проверяем текущую запись игрока в его персональной папке
-            const checkRes = await fetch(`${BASE_DB_URL}/${userId}.json`);
-            const currentRecord = await checkRes.json();
-            
-            // Если данных нет или новый счет больше старого — обновляем
-            if (!currentRecord || s > currentRecord.score) {
-                await fetch(`${BASE_DB_URL}/${userId}.json`, {
-                    method: 'PUT', // PUT перезаписывает данные по конкретному адресу
-                    body: JSON.stringify({ 
-                        id: userId, 
-                        name: firstName, 
-                        score: s, 
-                        date: Date.now() 
-                    })
-                });
-            }
-        } catch (e) { console.error(e); }
+    async function saveScore(s) {
+        const check = await fetch(`${BASE_DB_URL}/${userId}.json`);
+        const current = await check.json();
+        if (!current || s > current.score) {
+            await fetch(`${BASE_DB_URL}/${userId}.json`, {
+                method: 'PUT',
+                body: JSON.stringify({ id: userId, name: firstName, score: s })
+            });
+        }
     }
 
     function initGame() {
-        if (isRunning) return;
-        isRunning = true; score = 0; birdY = window.innerHeight / 2.5; velocity = 0;
+        isRunning = true; score = 0; birdY = 200; velocity = 0;
         pipes.forEach(p => { p.t.remove(); p.b.remove(); }); pipes = [];
-        scoreDisplay.innerText = "0"; scoreDisplay.style.display = 'block'; menu.style.display = 'none';
+        scoreDisplay.style.display = 'block'; document.getElementById('menu').style.display = 'none';
         requestAnimationFrame(update);
-    }
-
-    function createPipe() {
-        const gap = 180, topH = Math.floor(Math.random() * (window.innerHeight - 450)) + 50;
-        const t = document.createElement('div'); t.className = 'pipe top'; t.style.height = topH + 'px'; t.style.left = window.innerWidth + 'px';
-        const b = document.createElement('div'); b.className = 'pipe bottom'; b.style.height = (window.innerHeight - topH - gap - 100) + 'px'; b.style.bottom = '100px'; b.style.left = window.innerWidth + 'px';
-        container.appendChild(t); container.appendChild(b);
-        pipes.push({x: window.innerWidth, t, b, p: false});
     }
 
     function update() {
         if (!isRunning) return;
-        groundX -= 2.5;
-        if (groundX <= -window.innerWidth) groundX = 0;
-        ground.style.transform = `translateX(${groundX}px)`;
+        velocity += 0.22; birdY += velocity;
+        bird.style.transform = `translateY(${birdY}px) rotate(${Math.min(velocity*3, 25)}deg)`;
         
-        velocity += gravity; birdY += velocity;
-        const rotation = Math.min(velocity * 3, 25);
-        bird.style.transform = `translateY(${birdY}px) rotate(${rotation}deg)`;
-        
-        if (birdY > window.innerHeight - 130 || birdY < -50) return die();
-        if (pipes.length === 0 || pipes[pipes.length - 1].x < window.innerWidth - 240) createPipe();
-        
+        if (birdY > window.innerHeight - 100 || birdY < -50) return die();
+
+        if (pipes.length === 0 || pipes[pipes.length-1].x < window.innerWidth - 220) {
+            const gap = 170, topH = Math.random() * (window.innerHeight - 400) + 50;
+            const t = document.createElement('div'); t.className = 'pipe top'; t.style.height = topH + 'px';
+            const b = document.createElement('div'); b.className = 'pipe bottom'; b.style.height = (window.innerHeight - topH - gap - 100) + 'px';
+            document.getElementById('game-container').appendChild(t);
+            document.getElementById('game-container').appendChild(b);
+            pipes.push({x: window.innerWidth, t, b, p: false});
+        }
+
         pipes.forEach((p, i) => {
             p.x -= 3; p.t.style.left = p.x + 'px'; p.b.style.left = p.x + 'px';
             const br = bird.getBoundingClientRect(), tr = p.t.getBoundingClientRect(), brr = p.b.getBoundingClientRect();
-            if (br.right-12 > tr.left && br.left+12 < tr.right && (br.top+8 < tr.bottom || br.bottom-8 > brr.top)) die();
-            if (!p.p && p.x < 50) { p.p = true; score++; scoreDisplay.innerText = score; tg.HapticFeedback.impactOccurred('medium'); }
+            if (br.right-10 > tr.left && br.left+10 < tr.right && (br.top+8 < tr.bottom || br.bottom-8 > brr.top)) die();
+            if (!p.p && p.x < 50) { 
+                p.p = true; score++; orbs++; 
+                scoreDisplay.innerText = score;
+                orbCountDisp.innerText = orbs;
+                localStorage.setItem('orbs', orbs);
+                tg.HapticFeedback.impactOccurred('light'); 
+            }
             if (p.x < -60) { p.t.remove(); p.b.remove(); pipes.splice(i, 1); }
         });
         frameId = requestAnimationFrame(update);
@@ -157,24 +167,16 @@
     async function die() {
         isRunning = false; cancelAnimationFrame(frameId);
         tg.HapticFeedback.notificationOccurred('error');
-        await saveWorldScore(score);
-        await loadWorldScores();
-        menu.style.display = 'flex';
+        await saveScore(score);
+        loadScores();
+        document.getElementById('menu').style.display = 'flex';
         scoreDisplay.style.display = 'none';
     }
 
-    const startAction = (e) => { e.preventDefault(); e.stopPropagation(); initGame(); };
-    startBtn.addEventListener('touchend', startAction);
-    startBtn.addEventListener('click', startAction);
+    document.getElementById('start-btn').onclick = initGame;
+    window.addEventListener('touchstart', (e) => { if(isRunning) { velocity = -4.8; e.preventDefault(); } }, {passive: false});
 
-    const jumpAction = (e) => { 
-        if(isRunning) { velocity = jump; tg.HapticFeedback.impactOccurred('light'); } 
-        if(e.type === 'touchstart' && isRunning) e.preventDefault(); 
-    };
-    window.addEventListener('touchstart', jumpAction, {passive: false});
-    window.addEventListener('mousedown', jumpAction);
-
-    loadWorldScores();
+    loadScores();
 </script>
 </body>
 </html>
