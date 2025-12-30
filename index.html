@@ -1,50 +1,56 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Ghosty Legend: Dark Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ghosty Legend</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; padding: 0; background: #020205; overflow: hidden; touch-action: none; font-family: 'Press Start 2P', cursive; }
-        #gameCanvas { display: block; width: 100vw; height: 100vh; }
-        
-        .ui-layer { position: absolute; inset: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .screen { pointer-events: auto; background: rgba(0,0,0,0.8); padding: 40px; border: 2px solid #4b0082; text-align: center; border-radius: 15px; }
-        
-        h1 { color: #9b59b6; font-size: 18px; text-shadow: 0 0 10px #4b0082; margin-bottom: 30px; }
-        .btn { 
-            background: #4b0082; color: white; border: none; padding: 20px 40px; 
-            font-family: inherit; font-size: 12px; cursor: pointer;
-            border-bottom: 5px solid #2a0044; transition: 0.1s;
+        body { margin: 0; padding: 0; background: #050508; overflow: hidden; font-family: sans-serif; }
+        canvas { display: block; touch-action: none; }
+        #ui {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 10; pointer-events: none;
         }
-        .btn:active { transform: translateY(3px); border-bottom: 2px solid #2a0044; }
-        #score-val { position: absolute; top: 40px; font-size: 30px; color: white; text-shadow: 0 0 15px #9b59b6; display: none; }
+        .btn {
+            pointer-events: auto;
+            background: #4b0082; color: white;
+            padding: 20px 50px; border: none;
+            border-radius: 12px; font-size: 18px;
+            font-weight: bold; cursor: pointer;
+            box-shadow: 0 5px 0 #2a0044;
+        }
+        .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #2a0044; }
     </style>
 </head>
 <body>
 
-<canvas id="gameCanvas"></canvas>
-
-<div class="ui-layer">
-    <div id="score-val">0</div>
-    <div id="menu" class="screen">
-        <h1>NEON CRYPT</h1>
-        <button class="btn" onclick="initGame()">START GAME</button>
+<div id="ui">
+    <div id="menu">
+        <h1 style="color: white; text-align: center; margin-bottom: 20px;">GHOSTY DARKNESS</h1>
+        <button class="btn" id="startBtn">START GAME</button>
     </div>
 </div>
+<canvas id="game"></canvas>
 
 <script>
 const tg = window.Telegram.WebApp;
-tg.ready(); tg.expand();
+tg.expand();
+tg.ready();
 
-const canvas = document.getElementById('gameCanvas');
+const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
-const scoreDisp = document.getElementById('score-val');
+const startBtn = document.getElementById('startBtn');
+const menu = document.getElementById('menu');
 
-// Размеры экрана
-let W, H;
+let W, H, ghost, pipes, score, isPlay = false;
+
+// Рисуем спрайт призрака программно (максимально близко к генерации)
+const ghostSprite = new Image();
+ghostSprite.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTIwIj4KICA8ZyBmaWx0ZXI9InVybCgjZikiPgo8cGF0aCBkPSJNMjAsMTAwIEMyMCwyMCA1MCwyMCA4MCwyMCBDODAsMTAwIDcwLDkwIDYwLDEwMCBDNTAsOTAgNDAsMTAwIDMwLDkwIDIwLDEwMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiAvPgo8Y2lyY2xlIGN4PSIzNSIgY3k9IjUwIiByPSI2IiBmaWxsPSJibGFjayIvPgo8Y2lyY2xlIGN4PSI2NSIgY3k9IjUwIiByPSI2IiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNNDAsODAgUTUwLDkwIDYwLDgwIiBzdHJva2U9ImJsYWNrIiBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8L2c+Cjwvc3ZnPg==";
+
 function resize() {
     W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
@@ -52,195 +58,129 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// Игровые переменные
-let bird, pipes, particles, score, isPlay = false, frame = 0;
-
-// Класс призрака
 class Ghost {
     constructor() {
-        this.x = 60;
-        this.y = H / 2;
-        this.w = 50;
-        this.h = 55;
+        this.y = H/2;
         this.v = 0;
-        this.g = 0.25;
-        this.angle = 0;
+        this.g = 0.4; // Гравитация
     }
+    jump() { this.v = -7; }
     update() {
         this.v += this.g;
         this.y += this.v;
-        this.angle = Math.min(Math.PI/6, Math.max(-Math.PI/6, this.v * 0.05));
-        
-        // Частицы хвоста
-        if (frame % 2 === 0) {
-            particles.push(new Particle(this.x + 10, this.y + 25));
-        }
     }
     draw() {
         ctx.save();
-        ctx.translate(this.x + 25, this.y + 25);
-        ctx.rotate(this.angle);
-        
-        // Рисуем тело призрака (Эффект свечения)
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = "rgba(255,255,255,0.5)";
-        ctx.fillStyle = "rgba(255,255,255,0.9)";
-        
-        // Тело
-        ctx.beginPath();
-        ctx.moveTo(-20, 20);
-        ctx.quadraticCurveTo(-20, -25, 0, -25);
-        ctx.quadraticCurveTo(20, -25, 20, 20);
-        ctx.lineTo(15, 15); ctx.lineTo(10, 20); ctx.lineTo(0, 15);
-        ctx.lineTo(-10, 20); ctx.lineTo(-15, 15);
-        ctx.closePath();
-        ctx.fill();
-
-        // Глаза
-        ctx.fillStyle = "#000";
-        ctx.beginPath();
-        ctx.arc(-8, -2, 3, 0, Math.PI*2);
-        ctx.arc(8, -2, 3, 0, Math.PI*2);
-        ctx.fill();
-        
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = "white";
+        ctx.drawImage(ghostSprite, 50, this.y, 60, 70);
         ctx.restore();
     }
 }
 
-// Колонны (Готика)
-class Pipe {
+class Column {
     constructor() {
-        this.gap = 180;
-        this.w = 70;
         this.x = W;
-        this.topH = Math.random() * (H - this.gap - 200) + 100;
+        this.w = 70;
+        this.gap = 200;
+        this.top = Math.random() * (H - this.gap - 200) + 100;
         this.passed = false;
     }
-    update() {
-        this.x -= 3.5;
-    }
     draw() {
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = "#4b0082";
-        
-        // Градиент колонн
+        // Тело колонны (готический стиль)
         let grad = ctx.createLinearGradient(this.x, 0, this.x + this.w, 0);
-        grad.addColorStop(0, "#1a1a1a");
-        grad.addColorStop(0.5, "#333");
-        grad.addColorStop(1, "#1a1a1a");
+        grad.addColorStop(0, '#111');
+        grad.addColorStop(0.5, '#333');
+        grad.addColorStop(1, '#111');
         ctx.fillStyle = grad;
-
-        // Верхняя
-        ctx.fillRect(this.x, 0, this.w, this.topH);
-        ctx.fillStyle = "#4b0082";
-        ctx.fillRect(this.x - 5, this.topH - 20, this.w + 10, 20);
-
-        // Нижняя
-        ctx.fillStyle = grad;
-        ctx.fillRect(this.x, this.topH + this.gap, this.w, H - this.topH - this.gap);
-        ctx.fillStyle = "#4b0082";
-        ctx.fillRect(this.x - 5, this.topH + this.gap, this.w + 10, 20);
+        
+        ctx.fillRect(this.x, 0, this.w, this.top);
+        ctx.fillRect(this.x, this.top + this.gap, this.w, H);
+        
+        // Светящиеся края
+        ctx.strokeStyle = '#4b0082';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(this.x, 0, this.w, this.top);
+        ctx.strokeRect(this.x, this.top + this.gap, this.w, H);
     }
 }
 
-// Частицы эктоплазмы
-class Particle {
-    constructor(x, y) {
-        this.x = x; this.y = y;
-        this.s = Math.random() * 5;
-        this.vX = -Math.random() * 2;
-        this.vY = (Math.random() - 0.5) * 1;
-        this.a = 1;
-    }
-    update() {
-        this.x += this.vX; this.y += this.vY;
-        this.a -= 0.02;
-    }
-    draw() {
-        ctx.fillStyle = `rgba(255, 255, 255, ${this.a})`;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.s, 0, Math.PI*2);
-        ctx.fill();
-    }
-}
-
-function initGame() {
-    bird = new Ghost();
+function init() {
+    ghost = new Ghost();
     pipes = [];
-    particles = [];
     score = 0;
     isPlay = true;
-    document.getElementById('menu').style.display = 'none';
-    scoreDisp.style.display = 'block';
-    loop();
+    menu.style.display = 'none';
+    requestAnimationFrame(loop);
 }
 
 function loop() {
     if (!isPlay) return;
-    ctx.clearRect(0, 0, W, H);
-    frame++;
-
-    // Фон (Замок на горизонте)
-    ctx.fillStyle = "#0a0a1a";
+    
+    // Фон
+    ctx.fillStyle = '#0a0a1a';
     ctx.fillRect(0, 0, W, H);
     
-    // Рисуем горы/замки (упрощенно силуэтом)
-    ctx.fillStyle = "#050508";
-    ctx.beginPath();
-    ctx.moveTo(0, H);
-    for(let i=0; i<W; i+=50) {
-        ctx.lineTo(i, H - 150 - Math.sin(i*0.01)*50);
+    // Призрак
+    ghost.update();
+    ghost.draw();
+    
+    // Колонны
+    if (pipes.length === 0 || pipes[pipes.length-1].x < W - 250) {
+        pipes.push(new Column());
     }
-    ctx.lineTo(W, H); ctx.fill();
-
-    bird.update();
-    bird.draw();
-
-    if (frame % 90 === 0) pipes.push(new Pipe());
-
+    
     pipes.forEach((p, i) => {
-        p.update();
+        p.x -= 4;
         p.draw();
-
+        
         // Коллизия
-        if (bird.x + 40 > p.x && bird.x + 10 < p.x + p.w) {
-            if (bird.y + 10 < p.topH || bird.y + 40 > p.topH + p.gap) {
+        if (60 + 40 > p.x && 60 < p.x + p.w) {
+            if (ghost.y + 10 < p.top || ghost.y + 60 > p.top + p.gap) {
                 gameOver();
             }
         }
-
-        if (!p.passed && p.x < bird.x) {
+        
+        if (!p.passed && p.x < 50) {
             p.passed = true;
             score++;
-            scoreDisp.innerText = score;
             tg.HapticFeedback.impactOccurred('light');
         }
-
+        
         if (p.x < -100) pipes.splice(i, 1);
     });
+    
+    // Счет
+    ctx.fillStyle = "white";
+    ctx.font = "bold 40px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(score, W/2, 80);
 
-    particles.forEach((p, i) => {
-        p.update();
-        p.draw();
-        if (p.a <= 0) particles.splice(i, 1);
-    });
-
-    if (bird.y > H || bird.y < -50) gameOver();
-
+    if (ghost.y > H || ghost.y < -100) gameOver();
+    
     requestAnimationFrame(loop);
 }
 
 function gameOver() {
     isPlay = false;
+    menu.style.display = 'block';
+    document.querySelector('h1').innerText = "SCORE: " + score;
     tg.HapticFeedback.notificationOccurred('error');
-    document.getElementById('menu').style.display = 'block';
-    document.getElementById('menu').querySelector('h1').innerText = "REST IN PEACE: " + score;
 }
 
-const jump = () => { if(isPlay) bird.v = -6; };
-window.addEventListener('touchstart', (e) => { jump(); e.preventDefault(); }, {passive: false});
-window.addEventListener('mousedown', jump);
+// Управление
+const handleInput = (e) => {
+    if (isPlay) ghost.jump();
+    if (e.type === 'touchstart') e.preventDefault();
+};
 
+startBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    init();
+});
+
+window.addEventListener('mousedown', handleInput);
+window.addEventListener('touchstart', handleInput, { passive: false });
 </script>
 </body>
 </html>
