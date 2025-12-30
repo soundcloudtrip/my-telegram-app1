@@ -3,184 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ghosty Legend</title>
+    <title>Ghosty Legend: Phaser Edition</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; padding: 0; background: #050508; overflow: hidden; font-family: sans-serif; }
-        canvas { display: block; touch-action: none; }
-        #ui {
-            position: absolute; inset: 0;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            z-index: 10; pointer-events: none;
-        }
-        .btn {
-            pointer-events: auto;
-            background: #4b0082; color: white;
-            padding: 20px 50px; border: none;
-            border-radius: 12px; font-size: 18px;
-            font-weight: bold; cursor: pointer;
-            box-shadow: 0 5px 0 #2a0044;
-        }
-        .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #2a0044; }
+        body { margin: 0; background: #050508; overflow: hidden; }
+        canvas { display: block; }
     </style>
 </head>
 <body>
-
-<div id="ui">
-    <div id="menu">
-        <h1 style="color: white; text-align: center; margin-bottom: 20px;">GHOSTY DARKNESS</h1>
-        <button class="btn" id="startBtn">START GAME</button>
-    </div>
-</div>
-<canvas id="game"></canvas>
-
 <script>
 const tg = window.Telegram.WebApp;
 tg.expand();
 tg.ready();
 
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-const startBtn = document.getElementById('startBtn');
-const menu = document.getElementById('menu');
-
-let W, H, ghost, pipes, score, isPlay = false;
-
-// Рисуем спрайт призрака программно (максимально близко к генерации)
-const ghostSprite = new Image();
-ghostSprite.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTIwIj4KICA8ZyBmaWx0ZXI9InVybCgjZikiPgo8cGF0aCBkPSJNMjAsMTAwIEMyMCwyMCA1MCwyMCA4MCwyMCBDODAsMTAwIDcwLDkwIDYwLDEwMCBDNTAsOTAgNDAsMTAwIDMwLDkwIDIwLDEwMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiAvPgo8Y2lyY2xlIGN4PSIzNSIgY3k9IjUwIiByPSI2IiBmaWxsPSJibGFjayIvPgo8Y2lyY2xlIGN4PSI2NSIgY3k9IjUwIiByPSI2IiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNNDAsODAgUTUwLDkwIDYwLDgwIiBzdHJva2U9ImJsYWNrIiBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8L2c+Cjwvc3ZnPg==";
-
-function resize() {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resize);
-resize();
-
-class Ghost {
-    constructor() {
-        this.y = H/2;
-        this.v = 0;
-        this.g = 0.4; // Гравитация
-    }
-    jump() { this.v = -7; }
-    update() {
-        this.v += this.g;
-        this.y += this.v;
-    }
-    draw() {
-        ctx.save();
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = "white";
-        ctx.drawImage(ghostSprite, 50, this.y, 60, 70);
-        ctx.restore();
-    }
-}
-
-class Column {
-    constructor() {
-        this.x = W;
-        this.w = 70;
-        this.gap = 200;
-        this.top = Math.random() * (H - this.gap - 200) + 100;
-        this.passed = false;
-    }
-    draw() {
-        // Тело колонны (готический стиль)
-        let grad = ctx.createLinearGradient(this.x, 0, this.x + this.w, 0);
-        grad.addColorStop(0, '#111');
-        grad.addColorStop(0.5, '#333');
-        grad.addColorStop(1, '#111');
-        ctx.fillStyle = grad;
-        
-        ctx.fillRect(this.x, 0, this.w, this.top);
-        ctx.fillRect(this.x, this.top + this.gap, this.w, H);
-        
-        // Светящиеся края
-        ctx.strokeStyle = '#4b0082';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(this.x, 0, this.w, this.top);
-        ctx.strokeRect(this.x, this.top + this.gap, this.w, H);
-    }
-}
-
-function init() {
-    ghost = new Ghost();
-    pipes = [];
-    score = 0;
-    isPlay = true;
-    menu.style.display = 'none';
-    requestAnimationFrame(loop);
-}
-
-function loop() {
-    if (!isPlay) return;
-    
-    // Фон
-    ctx.fillStyle = '#0a0a1a';
-    ctx.fillRect(0, 0, W, H);
-    
-    // Призрак
-    ghost.update();
-    ghost.draw();
-    
-    // Колонны
-    if (pipes.length === 0 || pipes[pipes.length-1].x < W - 250) {
-        pipes.push(new Column());
-    }
-    
-    pipes.forEach((p, i) => {
-        p.x -= 4;
-        p.draw();
-        
-        // Коллизия
-        if (60 + 40 > p.x && 60 < p.x + p.w) {
-            if (ghost.y + 10 < p.top || ghost.y + 60 > p.top + p.gap) {
-                gameOver();
-            }
-        }
-        
-        if (!p.passed && p.x < 50) {
-            p.passed = true;
-            score++;
-            tg.HapticFeedback.impactOccurred('light');
-        }
-        
-        if (p.x < -100) pipes.splice(i, 1);
-    });
-    
-    // Счет
-    ctx.fillStyle = "white";
-    ctx.font = "bold 40px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(score, W/2, 80);
-
-    if (ghost.y > H || ghost.y < -100) gameOver();
-    
-    requestAnimationFrame(loop);
-}
-
-function gameOver() {
-    isPlay = false;
-    menu.style.display = 'block';
-    document.querySelector('h1').innerText = "SCORE: " + score;
-    tg.HapticFeedback.notificationOccurred('error');
-}
-
-// Управление
-const handleInput = (e) => {
-    if (isPlay) ghost.jump();
-    if (e.type === 'touchstart') e.preventDefault();
+const config = {
+    type: Phaser.AUTO,
+    width: window.innerWidth,
+    height: window.innerHeight,
+    backgroundColor: '#0a0a1a',
+    physics: {
+        default: 'arcade',
+        arcade: { gravity: { y: 1200 }, debug: false }
+    },
+    scene: { preload: preload, create: create, update: update }
 };
 
-startBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    init();
-});
+let game = new Phaser.Game(config);
+let ghost, pipes, score = 0, scoreText, isGameOver = false;
 
-window.addEventListener('mousedown', handleInput);
-window.addEventListener('touchstart', handleInput, { passive: false });
+function preload() {
+    // Вшиваем спрайт призрака прямо в код (Base64)
+    this.textures.addBase64('ghost', 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTIwIj48cGF0aCBkPSJNMjAsMTAwIEMyMCwyMCA1MCwyMCA4MCwyMCA4MCwxMDAgNzAsOTAgNjAsMTAwIDUwLDkwIDQwLDEwMCAzMCw5MCAyMCwxMDAiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48Y2lyY2xlIGN4PSIzNSIgY3k9IjUwIiByPSI2IiBmaWxsPSJibGFjayIvPjxjaXJjbGUgY3g9IjY1IiBjeT0iNTAiIHI9IjYiIGZpbGw9ImJsYWNrIi8+PC9zdmc+');
+}
+
+function create() {
+    const { width, height } = this.scale;
+
+    // Фон с эффектом тумана
+    let bg = this.add.graphics();
+    bg.fillGradientStyle(0x0a0a1a, 0x0a0a1a, 0x1a0a2e, 0x1a0a2e, 1);
+    bg.fillRect(0, 0, width, height);
+
+    // Призрак
+    ghost = this.physics.add.sprite(width * 0.2, height / 2, 'ghost').setScale(0.6);
+    ghost.setCollideWorldBounds(false);
+    ghost.setBodySize(60, 80);
+
+    // Группа для колонн
+    pipes = this.physics.add.group();
+
+    // Таймер создания колонн
+    this.time.addEvent({
+        delay: 1500,
+        callback: addPipes,
+        callbackScope: this,
+        loop: true
+    });
+
+    // Счет
+    scoreText = this.add.text(width / 2, 50, '0', {
+        fontSize: '48px',
+        fontFamily: 'Arial Black',
+        fill: '#fff'
+    }).setOrigin(0.5).setShadow(0, 0, '#9b59b6', 15, false, true);
+
+    // Управление
+    this.input.on('pointerdown', () => {
+        if (isGameOver) {
+            this.scene.restart();
+            isGameOver = false;
+            score = 0;
+        } else {
+            ghost.setVelocityY(-400);
+            this.tweens.add({
+                targets: ghost,
+                angle: -20,
+                duration: 100,
+                onComplete: () => { ghost.angle = 0; }
+            });
+        }
+    });
+
+    // Коллизии
+    this.physics.add.overlap(ghost, pipes, () => hitPipe(this), null, this);
+}
+
+function update() {
+    if (isGameOver) return;
+
+    if (ghost.y > this.scale.height || ghost.y < -50) {
+        hitPipe(this);
+    }
+
+    pipes.getChildren().forEach(pipe => {
+        if (pipe.x < -100) pipe.destroy();
+        if (!pipe.passed && pipe.x < ghost.x) {
+            pipe.passed = true;
+            if (pipe.name === 'top') { // Считаем очки только по одной колонне из пары
+                score++;
+                scoreText.setText(score);
+                tg.HapticFeedback.impactOccurred('light');
+            }
+        }
+    });
+}
+
+function addPipes() {
+    if (isGameOver) return;
+
+    const { width, height } = this.systems.scale;
+    const gap = 200;
+    const topH = Phaser.Math.Between(100, height - gap - 100);
+
+    // Создаем верхнюю колонну
+    let topPipe = pipes.create(width + 50, topH / 2, null);
+    drawPipe(this, topPipe, topH, true);
+
+    // Создаем нижнюю колонну
+    let bottomPipe = pipes.create(width + 50, topH + gap + (height - topH - gap) / 2, null);
+    drawPipe(this, bottomPipe, height - topH - gap, false);
+
+    pipes.setVelocityX(-250);
+}
+
+function drawPipe(scene, pipe, h, isTop) {
+    let graphics = scene.add.graphics();
+    graphics.fillGradientStyle(0x1a1a1a, 0x333333, 0x1a1a1a, 0x333333, 1);
+    graphics.fillRect(0, 0, 70, h);
+    graphics.lineStyle(3, 0x4b0082, 1);
+    graphics.strokeRect(0, 0, 70, h);
+    
+    // Генерируем текстуру из графики
+    const key = 'pipe' + h + isTop;
+    graphics.generateTexture(key, 70, h);
+    graphics.destroy();
+
+    pipe.setTexture(key);
+    pipe.body.setAllowGravity(false);
+    pipe.body.setImmovable(true);
+    pipe.name = isTop ? 'top' : 'bottom';
+    pipe.passed = false;
+}
+
+function hitPipe(scene) {
+    isGameOver = true;
+    scene.physics.pause();
+    ghost.setTint(0xff0000);
+    tg.HapticFeedback.notificationOccurred('error');
+    
+    scene.add.text(scene.scale.width / 2, scene.scale.height / 2, 'GAME OVER\nTap to Restart', {
+        fontSize: '32px',
+        fill: '#fff',
+        align: 'center',
+        fontFamily: 'Arial Black'
+    }).setOrigin(0.5);
+}
 </script>
 </body>
 </html>
