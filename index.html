@@ -1,164 +1,235 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ghosty Legend: Phaser Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Flappy Classic Leaderboard</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; background: #050508; overflow: hidden; }
-        canvas { display: block; }
+        body {
+            margin: 0; padding: 0; background: #000;
+            display: flex; align-items: center; justify-content: center;
+            height: 100vh; overflow: hidden;
+            -webkit-tap-highlight-color: transparent; touch-action: none;
+            font-family: 'Press Start 2P', cursive; color: white;
+        }
+
+        #game-container {
+            position: relative; width: 100vw; height: 100vh;
+            background: #70c5ce url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/background-day.png');
+            background-size: 500px 100%;
+            image-rendering: pixelated;
+            overflow: hidden;
+        }
+
+        #bird {
+            position: absolute; width: 34px; height: 24px;
+            background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/yellowbird-midflap.png') no-repeat;
+            background-size: contain; z-index: 10;
+        }
+
+        .pipe {
+            position: absolute; width: 52px;
+            background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/pipe-green.png') repeat-y;
+            background-size: 52px auto; z-index: 5;
+            image-rendering: pixelated;
+        }
+        .pipe.top { transform: rotate(180deg); }
+
+        #ground {
+            position: absolute; bottom: 0; width: 200%; height: 112px;
+            background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/base.png') repeat-x;
+            background-size: contain; z-index: 15;
+        }
+
+        #ui {
+            position: absolute; top: 10%; width: 100%;
+            text-align: center; z-index: 20;
+        }
+        #score { font-size: 45px; text-shadow: 3px 3px 0 #000; }
+        #best-score { font-size: 14px; margin-top: 10px; text-shadow: 2px 2px 0 #000; color: #ffeb3b; }
+
+        .screen {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; z-index: 100;
+        }
+
+        .get-ready { width: 184px; height: 50px; background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/message.png') no-repeat center; background-size: contain; margin-bottom: 20px; }
+        .game-over { width: 192px; height: 42px; background: url('https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/gameover.png') no-repeat center; background-size: contain; margin-bottom: 20px; }
+
+        .btn-play {
+            background: #e67e22; color: white; border: 3px solid #fff;
+            padding: 15px 30px; cursor: pointer; font-family: inherit; font-size: 16px;
+            box-shadow: 0 4px 0 #d35400;
+        }
+        .btn-play:active { transform: translateY(2px); box-shadow: 0 2px 0 #d35400; }
+        
+        #level-up {
+            position: absolute; top: 25%; width: 100%; text-align: center;
+            color: #f1c40f; font-size: 20px; display: none; z-index: 25;
+            text-shadow: 2px 2px 0 #000; animation: flash 0.5s infinite;
+        }
+        @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
+
+<div id="game-container">
+    <div id="ui">
+        <div id="score">0</div>
+        <div id="best-score">BEST: <span id="high-val">0</span></div>
+    </div>
+    
+    <div id="level-up">LEVEL UP!</div>
+    <div id="bird"></div>
+    <div id="ground"></div>
+
+    <div id="start-screen" class="screen">
+        <div class="get-ready"></div>
+        <button class="btn-play" onclick="startGame()">START</button>
+    </div>
+
+    <div id="over-screen" class="screen" style="display: none;">
+        <div class="game-over"></div>
+        <div style="margin-bottom: 20px;">SCORE: <span id="last-score">0</span></div>
+        <button class="btn-play" onclick="startGame()">RESTART</button>
+    </div>
+</div>
+
 <script>
-const tg = window.Telegram.WebApp;
-tg.expand();
-tg.ready();
+    const tg = window.Telegram.WebApp;
+    tg.expand();
 
-const config = {
-    type: Phaser.AUTO,
-    width: window.innerWidth,
-    height: window.innerHeight,
-    backgroundColor: '#0a0a1a',
-    physics: {
-        default: 'arcade',
-        arcade: { gravity: { y: 1200 }, debug: false }
-    },
-    scene: { preload: preload, create: create, update: update }
-};
+    const bird = document.getElementById('bird');
+    const container = document.getElementById('game-container');
+    const scoreText = document.getElementById('score');
+    const highValText = document.getElementById('high-val');
+    const levelText = document.getElementById('level-up');
+    
+    let birdY, velocity, score, isGameRunning, pipes, frameId;
+    let gravity = 0.25;
+    let jump = -5.2;
+    let pipeSpeed = 3;
+    let currentGap = 160;
 
-let game = new Phaser.Game(config);
-let ghost, pipes, score = 0, scoreText, isGameOver = false;
+    // Загрузка лучшего счета
+    let highScore = localStorage.getItem('fb_high') || 0;
+    highValText.innerText = highScore;
 
-function preload() {
-    // Вшиваем спрайт призрака прямо в код (Base64)
-    this.textures.addBase64('ghost', 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTIwIj48cGF0aCBkPSJNMjAsMTAwIEMyMCwyMCA1MCwyMCA4MCwyMCA4MCwxMDAgNzAsOTAgNjAsMTAwIDUwLDkwIDQwLDEwMCAzMCw5MCAyMCwxMDAiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48Y2lyY2xlIGN4PSIzNSIgY3k9IjUwIiByPSI2IiBmaWxsPSJibGFjayIvPjxjaXJjbGUgY3g9IjY1IiBjeT0iNTAiIHI9IjYiIGZpbGw9ImJsYWNrIi8+PC9zdmc+');
-}
-
-function create() {
-    const { width, height } = this.scale;
-
-    // Фон с эффектом тумана
-    let bg = this.add.graphics();
-    bg.fillGradientStyle(0x0a0a1a, 0x0a0a1a, 0x1a0a2e, 0x1a0a2e, 1);
-    bg.fillRect(0, 0, width, height);
-
-    // Призрак
-    ghost = this.physics.add.sprite(width * 0.2, height / 2, 'ghost').setScale(0.6);
-    ghost.setCollideWorldBounds(false);
-    ghost.setBodySize(60, 80);
-
-    // Группа для колонн
-    pipes = this.physics.add.group();
-
-    // Таймер создания колонн
-    this.time.addEvent({
-        delay: 1500,
-        callback: addPipes,
-        callbackScope: this,
-        loop: true
-    });
-
-    // Счет
-    scoreText = this.add.text(width / 2, 50, '0', {
-        fontSize: '48px',
-        fontFamily: 'Arial Black',
-        fill: '#fff'
-    }).setOrigin(0.5).setShadow(0, 0, '#9b59b6', 15, false, true);
-
-    // Управление
-    this.input.on('pointerdown', () => {
-        if (isGameOver) {
-            this.scene.restart();
-            isGameOver = false;
-            score = 0;
-        } else {
-            ghost.setVelocityY(-400);
-            this.tweens.add({
-                targets: ghost,
-                angle: -20,
-                duration: 100,
-                onComplete: () => { ghost.angle = 0; }
-            });
-        }
-    });
-
-    // Коллизии
-    this.physics.add.overlap(ghost, pipes, () => hitPipe(this), null, this);
-}
-
-function update() {
-    if (isGameOver) return;
-
-    if (ghost.y > this.scale.height || ghost.y < -50) {
-        hitPipe(this);
+    function startGame() {
+        isGameRunning = true;
+        score = 0;
+        pipeSpeed = 3;
+        currentGap = 160;
+        birdY = window.innerHeight / 2.5;
+        velocity = 0;
+        scoreText.innerText = "0";
+        document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+        
+        if (pipes) pipes.forEach(p => { p.top.remove(); p.bottom.remove(); });
+        pipes = [];
+        
+        requestAnimationFrame(update);
     }
 
-    pipes.getChildren().forEach(pipe => {
-        if (pipe.x < -100) pipe.destroy();
-        if (!pipe.passed && pipe.x < ghost.x) {
-            pipe.passed = true;
-            if (pipe.name === 'top') { // Считаем очки только по одной колонне из пары
-                score++;
-                scoreText.setText(score);
-                tg.HapticFeedback.impactOccurred('light');
-            }
+    function createPipe() {
+        const topH = Math.floor(Math.random() * (window.innerHeight - currentGap - 280)) + 60;
+
+        const top = document.createElement('div');
+        top.className = 'pipe top';
+        top.style.height = topH + 'px';
+        top.style.left = window.innerWidth + 'px';
+
+        const bottom = document.createElement('div');
+        bottom.className = 'pipe bottom';
+        bottom.style.height = (window.innerHeight - topH - currentGap - 112) + 'px';
+        bottom.style.bottom = '112px';
+        bottom.style.left = window.innerWidth + 'px';
+
+        container.appendChild(top);
+        container.appendChild(bottom);
+        pipes.push({ x: window.innerWidth, top, bottom, passed: false });
+    }
+
+    function update() {
+        if (!isGameRunning) return;
+
+        velocity += gravity;
+        birdY += velocity;
+        bird.style.transform = `translate(60px, ${birdY}px) rotate(${Math.min(velocity * 4, 90)}deg)`;
+
+        // Проигрыш при падении
+        if (birdY > window.innerHeight - 112 - 24 || birdY < -50) return gameOver();
+
+        // Спавн труб
+        if (pipes.length === 0 || pipes[pipes.length - 1].x < window.innerWidth - 220) {
+            createPipe();
         }
-    });
-}
 
-function addPipes() {
-    if (isGameOver) return;
+        pipes.forEach((pipe, i) => {
+            pipe.x -= pipeSpeed;
+            pipe.top.style.left = pipe.x + 'px';
+            pipe.bottom.style.left = pipe.x + 'px';
 
-    const { width, height } = this.systems.scale;
-    const gap = 200;
-    const topH = Phaser.Math.Between(100, height - gap - 100);
+            const bRect = { left: 60, right: 94, top: birdY, bottom: birdY + 24 };
+            const tRect = pipe.top.getBoundingClientRect();
+            const btRect = pipe.bottom.getBoundingClientRect();
 
-    // Создаем верхнюю колонну
-    let topPipe = pipes.create(width + 50, topH / 2, null);
-    drawPipe(this, topPipe, topH, true);
+            // Коллизии
+            if (bRect.right - 5 > tRect.left && bRect.left + 5 < tRect.right) {
+                if (bRect.top + 5 < tRect.bottom || bRect.bottom - 5 > btRect.top) {
+                    gameOver();
+                }
+            }
 
-    // Создаем нижнюю колонну
-    let bottomPipe = pipes.create(width + 50, topH + gap + (height - topH - gap) / 2, null);
-    drawPipe(this, bottomPipe, height - topH - gap, false);
+            // Очки и Усложнение
+            if (!pipe.passed && pipe.x < 40) {
+                pipe.passed = true;
+                score++;
+                scoreText.innerText = score;
+                tg.HapticFeedback.impactOccurred('medium');
 
-    pipes.setVelocityX(-250);
-}
+                // Усложнение каждые 20 очков
+                if (score > 0 && score % 20 === 0) {
+                    pipeSpeed += 0.5;
+                    currentGap = Math.max(110, currentGap - 10);
+                    showLevelUp();
+                }
+            }
 
-function drawPipe(scene, pipe, h, isTop) {
-    let graphics = scene.add.graphics();
-    graphics.fillGradientStyle(0x1a1a1a, 0x333333, 0x1a1a1a, 0x333333, 1);
-    graphics.fillRect(0, 0, 70, h);
-    graphics.lineStyle(3, 0x4b0082, 1);
-    graphics.strokeRect(0, 0, 70, h);
-    
-    // Генерируем текстуру из графики
-    const key = 'pipe' + h + isTop;
-    graphics.generateTexture(key, 70, h);
-    graphics.destroy();
+            if (pipe.x < -60) {
+                pipe.top.remove(); pipe.bottom.remove();
+                pipes.splice(i, 1);
+            }
+        });
 
-    pipe.setTexture(key);
-    pipe.body.setAllowGravity(false);
-    pipe.body.setImmovable(true);
-    pipe.name = isTop ? 'top' : 'bottom';
-    pipe.passed = false;
-}
+        frameId = requestAnimationFrame(update);
+    }
 
-function hitPipe(scene) {
-    isGameOver = true;
-    scene.physics.pause();
-    ghost.setTint(0xff0000);
-    tg.HapticFeedback.notificationOccurred('error');
-    
-    scene.add.text(scene.scale.width / 2, scene.scale.height / 2, 'GAME OVER\nTap to Restart', {
-        fontSize: '32px',
-        fill: '#fff',
-        align: 'center',
-        fontFamily: 'Arial Black'
-    }).setOrigin(0.5);
-}
-</script>
-</body>
-</html>
+    function showLevelUp() {
+        levelText.style.display = 'block';
+        setTimeout(() => levelText.style.display = 'none', 1500);
+    }
+
+    function gameOver() {
+        isGameRunning = false;
+        cancelAnimationFrame(frameId);
+        tg.HapticFeedback.notificationOccurred('error');
+        
+        document.getElementById('last-score').innerText = score;
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem('fb_high', highScore);
+            highValText.innerText = highScore;
+        }
+        
+        document.getElementById('over-screen').style.display = 'flex';
+    }
+
+    const input = (e) => {
+        if (!isGameRunning) return;
+        velocity = jump;
+        tg.HapticFeedback.impactOccurred('light');
+        if (e && e.type ===
