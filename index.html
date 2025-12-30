@@ -3,95 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Ghosty Legend: Pro Graphics</title>
+    <title>Ghosty Legend: Dark Fantasy</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         :root {
-            --sprite: url('https://ibb.co/whJjR54G');
+            --ghost-color: rgba(255, 255, 255, 0.85);
+            --accent: #4b0082;
         }
 
         body { margin: 0; padding: 0; background: #050508; overflow: hidden; font-family: 'Press Start 2P', cursive; touch-action: none; color: white; }
         
-        #game-container { position: relative; width: 100vw; height: 100vh; background: #0a0a1a; overflow: hidden; }
+        #game-container { position: relative; width: 100vw; height: 100vh; background: linear-gradient(to bottom, #0a0a1a, #1a0a2e); overflow: hidden; }
 
-        /* Задний план (Замок из нижней части спрайта) */
+        /* Имитация пиксельного замка на фоне через градиент и маски */
         #bg-pixel {
-            position: absolute; bottom: 0; width: 200%; height: 100%;
-            background: var(--sprite) no-repeat bottom center;
-            background-size: 250% auto;
-            opacity: 0.5; z-index: 1; pointer-events: none;
-            animation: scrollBg 60s linear infinite;
+            position: absolute; bottom: 0; width: 200%; height: 50%;
+            background-image: 
+                linear-gradient(45deg, #111 25%, transparent 25%),
+                linear-gradient(-45deg, #111 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #111 75%),
+                linear-gradient(-45deg, transparent 75%, #111 75%);
+            background-size: 100px 100px;
+            opacity: 0.3; z-index: 1; pointer-events: none;
+            animation: scrollBg 20s linear infinite;
         }
 
-        /* Призрак (Берем из левого верхнего угла спрайта) */
+        /* Тот самый призрак (чистый, без одежды) */
         #bird { 
-            position: absolute; width: 60px; height: 60px; z-index: 100; left: 50px;
-            background: var(--sprite) no-repeat;
-            background-size: 600px 600px; /* Размер всего полотна */
-            background-position: -20px -20px; /* Позиция призрака */
-            display: none; pointer-events: none;
+            position: absolute; width: 45px; height: 50px; z-index: 100; left: 50px;
+            background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 120'><path d='M20,100 Q20,20 50,20 Q80,20 80,100 Q70,90 60,100 Q50,90 40,100 Q30,90 20,100' fill='white' opacity='0.9'/><circle cx='35' cy='50' r='6' fill='black'/><circle cx='65' cy='50' r='6' fill='black'/><path d='M40,75 Q50,85 60,75' stroke='black' fill='none' stroke-width='2'/></svg>") no-repeat center;
+            background-size: contain; display: none; filter: drop-shadow(0 0 8px rgba(255,255,255,0.5));
         }
 
-        /* Колонны (Берем текстуру камня из правой части спрайта) */
+        /* Темные Колонны (как в Dark Fantasy) */
         .pipe { 
-            position: absolute; width: 70px; z-index: 50; 
-            background: var(--sprite) repeat-y;
-            background-size: 600px 600px;
-            background-position: -480px 0; /* Текстура колонны */
-            border-left: 3px solid #4b0082;
-            border-right: 3px solid #4b0082;
+            position: absolute; width: 65px; z-index: 50; 
+            background: linear-gradient(90deg, #111 0%, #222 50%, #111 100%);
+            border-left: 4px solid var(--accent);
+            border-right: 4px solid var(--accent);
+            box-shadow: 0 0 20px rgba(75, 0, 130, 0.6);
             pointer-events: none;
         }
 
-        /* Навершия колонн */
+        /* Массивная верхушка колонны */
         .pipe::after {
-            content: ''; position: absolute; width: 90px; height: 30px;
-            background: var(--sprite) no-repeat;
-            background-size: 600px 600px;
-            background-position: -470px -10px;
-            left: -13px; border: 2px solid #000;
+            content: ''; position: absolute; width: 85px; height: 25px;
+            background: #2a0044; left: -14px; border: 3px solid #000;
         }
-        .pipe.top::after { bottom: -15px; }
-        .pipe.bottom::after { top: -15px; }
+        .pipe.top::after { bottom: -10px; border-radius: 0 0 10px 10px; }
+        .pipe.bottom::after { top: -10px; border-radius: 10px 10px 0 0; }
 
         /* Интерфейс */
-        #ui { position: absolute; inset: 0; pointer-events: none; z-index: 1000; }
-        #score { position: absolute; top: 10%; width: 100%; text-align: center; font-size: 30px; text-shadow: 0 0 10px #9b59b6; display: none; }
-        #coins { position: absolute; top: 20px; left: 20px; color: #00d4ff; font-size: 12px; }
+        #score { position: absolute; top: 10%; width: 100%; text-align: center; font-size: 32px; z-index: 1000; display: none; text-shadow: 0 0 15px var(--accent); }
+        #coins { position: absolute; top: 25px; left: 25px; color: #00d4ff; font-size: 10px; z-index: 1000; }
 
-        .screen { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; }
-        .btn { background: #4b0082; color: white; border: none; padding: 20px; width: 250px; font-family: inherit; margin: 10px; cursor: pointer; border-bottom: 6px solid #2a0044; }
-        .btn:active { transform: translateY(3px); border-bottom: 2px solid #2a0044; }
+        /* Меню и Кнопки */
+        .screen { position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; }
+        .btn { 
+            background: var(--accent); color: white; border: none; padding: 22px; 
+            width: 250px; font-family: inherit; font-size: 12px; margin: 12px; 
+            cursor: pointer; border-bottom: 6px solid #220044; position: relative; z-index: 2001;
+        }
+        .btn:active { transform: translateY(3px); border-bottom: 2px solid #220044; }
 
-        @keyframes scrollBg { from { background-position: 0 100%; } to { background-position: -1000px 100%; } }
+        @keyframes scrollBg { from { background-position: 0 0; } to { background-position: -1000px 0; } }
     </style>
 </head>
 <body>
 
 <div id="game-container">
     <div id="bg-pixel"></div>
-    <div id="ui">
-        <div id="coins">💎 <span id="orb-val">0</span></div>
-        <div id="score">0</div>
-    </div>
+    <div id="score">0</div>
+    <div id="coins">💎 <span id="orb-val">0</span></div>
     <div id="bird"></div>
 
     <div id="menu" class="screen">
-        <h1 style="color:#9b59b6; font-size:18px; margin-bottom:40px;">GHOSTY DARKNESS</h1>
-        <button class="btn" onclick="startGame()">START JOURNEY</button>
-        <button class="btn" onclick="toggleShop()" style="background:#2980b9;">EVOLUTION</button>
+        <h1 style="color:#9b59b6; font-size:16px; margin-bottom:40px;">NEON CRYPT</h1>
+        <button class="btn" id="start-btn">ENTER THE VOID</button>
+        <button class="btn" id="shop-btn" style="background:#2980b9; border-bottom-color:#1a5276;">EVOLVE</button>
     </div>
 </div>
 
 <script>
     const tg = window.Telegram.WebApp;
-    tg.ready();
+    tg.ready(); tg.expand();
 
     let birdY, vel, score, isPlay = false, pipes = [], loop;
     const bird = document.getElementById('bird');
     const scoreVal = document.getElementById('score');
     let orbs = parseInt(localStorage.getItem('gh_orbs')) || 0;
+
+    // Принудительно назначаем клики, чтобы точно работали
+    document.getElementById('start-btn').onclick = (e) => { e.stopPropagation(); startGame(); };
+    document.getElementById('shop-btn').onclick = (e) => { e.stopPropagation(); alert('Shop coming soon with Sprites!'); };
 
     function startGame() {
         isPlay = true; score = 0; birdY = window.innerHeight/2.5; vel = 0;
@@ -108,9 +113,9 @@
         if (!isPlay) return;
         vel += 0.25; birdY += vel;
         bird.style.top = birdY + 'px';
-        bird.style.transform = `rotate(${vel * 3}deg)`;
+        bird.style.transform = `rotate(${Math.min(vel * 3, 30)}deg)`;
 
-        if (birdY > window.innerHeight - 60 || birdY < -20) return die();
+        if (birdY > window.innerHeight - 50 || birdY < -50) return die();
 
         if (pipes.length === 0 || pipes[pipes.length-1].x < window.innerWidth - 240) {
             createPipes();
@@ -125,6 +130,7 @@
             const tr = p.t.getBoundingClientRect();
             const brr = p.b.getBoundingClientRect();
 
+            // Коллизия с учетом отступов для точности
             if (br.right-10 > tr.left && br.left+10 < tr.right && (br.top+10 < tr.bottom || br.bottom-10 > brr.top)) die();
 
             if (!p.pass && p.x < 50) { 
@@ -132,6 +138,7 @@
                 scoreVal.innerText = score;
                 document.getElementById('orb-val').innerText = orbs;
                 localStorage.setItem('gh_orbs', orbs);
+                tg.HapticFeedback.impactOccurred('medium');
             }
             if (p.x < -100) { p.t.remove(); p.b.remove(); pipes.splice(i, 1); }
         });
@@ -139,13 +146,15 @@
     }
 
     function createPipes() {
-        const gap = 190;
+        const gap = 185;
         const topH = Math.random() * (window.innerHeight - gap - 200) + 80;
         const botH = window.innerHeight - topH - gap;
+        
         const t = document.createElement('div'); t.className = 'pipe top';
-        t.style.height = topH + 'px'; t.style.top = '0';
+        t.style.height = topH + 'px'; t.style.top = '0'; t.style.left = window.innerWidth + 'px';
         const b = document.createElement('div'); b.className = 'pipe bottom';
-        b.style.height = botH + 'px'; b.style.bottom = '0';
+        b.style.height = botH + 'px'; b.style.bottom = '0'; b.style.left = window.innerWidth + 'px';
+        
         document.getElementById('game-container').appendChild(t);
         document.getElementById('game-container').appendChild(b);
         pipes.push({x: window.innerWidth, t, b, pass: false});
@@ -159,8 +168,14 @@
         tg.HapticFeedback.notificationOccurred('error');
     }
 
-    const jump = () => { if(isPlay) vel = -5.5; };
-    window.addEventListener('touchstart', jump);
+    // Управление
+    const jump = (e) => { 
+        if(isPlay) {
+            vel = -5.5; 
+            if(e.type === 'touchstart') e.preventDefault(); 
+        }
+    };
+    window.addEventListener('touchstart', jump, {passive: false});
     window.addEventListener('mousedown', jump);
 </script>
 </body>
