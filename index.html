@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CodeGram Bird Fixed</title>
+    <title>CodeGram Bird Final Fix</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; padding: 0; background: #111; overflow: hidden; font-family: 'Press Start 2P', cursive; touch-action: none; }
-        canvas { display: block; background: #70c5ce; }
+        body { margin: 0; padding: 0; background: #70c5ce; overflow: hidden; font-family: 'Press Start 2P', cursive; touch-action: none; }
+        canvas { display: block; width: 100vw; height: 100vh; }
         
         #ui-layer { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
@@ -18,28 +18,28 @@
         }
         
         .menu-box { 
-            background: rgba(0, 0, 0, 0.95); padding: 25px; border: 4px solid #f1c40f; 
-            text-align: center; color: white; width: 280px; border-radius: 15px;
-            pointer-events: all; /* Включаем клики */
+            background: rgba(0, 0, 0, 0.9); padding: 20px; border: 4px solid #f1c40f; 
+            text-align: center; color: white; width: 80%; max-width: 300px; border-radius: 15px;
+            pointer-events: all;
         }
         
         button {
             display: block; width: 100%; background: #e67e22; border: none; 
             border-bottom: 4px solid #d35400; color: white; 
-            font-family: 'Press Start 2P', cursive; padding: 15px 10px;
-            font-size: 10px; cursor: pointer; margin: 15px 0; touch-action: manipulation;
+            font-family: 'Press Start 2P', cursive; padding: 15px 5px;
+            font-size: 10px; cursor: pointer; margin: 10px 0;
         }
-        button:active { transform: translateY(2px); border-bottom-width: 2px; }
+        
         .btn-channel { background: #3498db; border-bottom-color: #2980b9; }
 
         #game-score { 
             position: absolute; top: 50px; width: 100%; text-align: center; 
-            color: white; font-size: 40px; text-shadow: 3px 3px 0 #000; z-index: 10; pointer-events: none;
+            color: white; font-size: 40px; text-shadow: 3px 3px 0 #000; z-index: 10; pointer-events: none; display: none;
         }
         
-        .leaderboard { margin-top: 15px; font-size: 8px; text-align: left; line-height: 1.5; }
-        .score-row { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding: 2px 0; }
-        #bonus-status { font-size: 9px; color: #2ecc71; margin-bottom: 10px; display: none; }
+        .leaderboard { margin-top: 15px; font-size: 8px; text-align: left; }
+        .score-row { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding: 4px 0; }
+        #bonus-status { font-size: 10px; color: #2ecc71; margin-bottom: 10px; display: none; }
     </style>
 </head>
 <body>
@@ -48,16 +48,16 @@
 
 <div id="ui-layer">
     <div id="main-menu" class="menu-box">
-        <div style="color: #f1c40f; font-size: 16px; margin-bottom: 20px;">CODEGRAM</div>
+        <div style="color: #f1c40f; font-size: 16px; margin-bottom: 15px;">CODEGRAM</div>
         <div id="bonus-status">✅ ЩИТ АКТИВИРОВАН</div>
-        <button id="btn-join" class="btn-channel">📢 ПОДПИСАТЬСЯ (+ЩИТ)</button>
+        <button id="btn-join" class="btn-channel">📢 КАНАЛ (+ЩИТ)</button>
         <button id="btn-start">ИГРАТЬ</button>
-        <div id="leaderboard-main" class="leaderboard"></div>
+        <div id="leaderboard-main" class="leaderboard">Загрузка...</div>
     </div>
 
     <div id="death-menu" class="menu-box" style="display: none;">
-        <div style="color: #e74c3c; font-size: 16px; margin-bottom: 15px;">GAME OVER</div>
-        <div id="final-score" style="font-size: 12px; margin-bottom: 15px;"></div>
+        <div style="color: #e74c3c; font-size: 16px; margin-bottom: 10px;">GAME OVER</div>
+        <div id="final-score" style="font-size: 12px; margin-bottom: 10px;"></div>
         <button id="btn-restart">РЕСТАРТ</button>
         <div id="leaderboard-death" class="leaderboard"></div>
     </div>
@@ -69,8 +69,9 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // КОНФИГ
+    // Замени на свою ссылку!
     const CHANNEL_URL = "https://t.me/your_channel_username"; 
+
     const firebaseConfig = {
         apiKey: "AIzaSyBZnG_M4EG1H8RKLhJJ9GIbZpipurLTpAs",
         databaseURL: "https://birdgame-1649d-default-rtdb.firebaseio.com",
@@ -90,7 +91,7 @@
 
     let W, H, bird, pipes, score, isPlay = false, hasShield = false;
 
-    // Ассеты
+    // Исправленные ссылки на ассеты
     const birdImg = new Image(); birdImg.src = 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/yellowbird-midflap.png';
     const bgImg = new Image(); bgImg.src = 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/background-day.png';
     const pipeImg = new Image(); pipeImg.src = 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/pipe-green.png';
@@ -102,34 +103,28 @@
     window.addEventListener('resize', resize);
     resize();
 
-    // ОБРАБОТКА КНОПОК (Исправлено)
-    document.getElementById('btn-start').addEventListener('click', (e) => {
-        e.stopPropagation();
-        startGame();
-    });
-
-    document.getElementById('btn-restart').addEventListener('click', (e) => {
-        e.stopPropagation();
-        startGame();
-    });
-
-    document.getElementById('btn-join').addEventListener('click', (e) => {
-        e.stopPropagation();
-        tg.openTelegramLink(CHANNEL_URL);
-        hasShield = true;
-        bStatus.style.display = 'block';
-        tg.HapticFeedback.notificationOccurred('success');
-    });
+    // Инициализация кнопок после загрузки
+    window.onload = () => {
+        document.getElementById('btn-start').onclick = (e) => { e.stopPropagation(); startGame(); };
+        document.getElementById('btn-restart').onclick = (e) => { e.stopPropagation(); startGame(); };
+        document.getElementById('btn-join').onclick = (e) => { 
+            e.stopPropagation(); 
+            tg.openTelegramLink(CHANNEL_URL);
+            hasShield = true;
+            bStatus.style.display = 'block';
+            tg.HapticFeedback.notificationOccurred('success');
+        };
+        updateLeaderboard('leaderboard-main');
+    };
 
     function startGame() {
         uiLayer.style.display = 'none';
         scoreEl.style.display = 'block';
-        
         bird = { y: H/2, v: 0, g: 0.25, w: 34, h: 24, shield: hasShield };
         pipes = []; score = 0;
         scoreEl.innerText = "0";
         isPlay = true;
-        requestAnimationFrame(loop);
+        loop();
     }
 
     function loop() {
@@ -138,7 +133,7 @@
         bird.v += bird.g;
         bird.y += bird.v;
 
-        if (Math.floor(Date.now() / 1500) % 2 === 0 && (pipes.length === 0 || pipes[pipes.length-1].x < W - 200)) {
+        if (pipes.length === 0 || pipes[pipes.length-1].x < W - 200) {
             let gap = 150;
             let topHeight = Math.random() * (H - gap - 200) + 100;
             pipes.push({ x: W, top: topHeight, gap: gap, passed: false });
@@ -151,40 +146,29 @@
             let p = pipes[i];
             p.x -= 3.5;
 
-            // Отрисовка труб
             ctx.drawImage(pipeImg, p.x, p.top + p.gap, 52, 600);
             ctx.save();
-            ctx.translate(p.x + 26, p.top);
-            ctx.rotate(Math.PI);
+            ctx.translate(p.x + 26, p.top); ctx.rotate(Math.PI);
             ctx.drawImage(pipeImg, -26, 0, 52, 600);
             ctx.restore();
 
-            // Коллизия
             if (65 + bird.w > p.x && 65 < p.x + 52) {
                 if (bird.y < p.top || bird.y + bird.h > p.top + p.gap) {
                     if (bird.shield) {
-                        bird.shield = false;
-                        hasShield = false;
-                        bStatus.style.display = 'none';
-                        pipes.splice(i, 1);
-                        tg.HapticFeedback.notificationOccurred('warning');
+                        bird.shield = false; hasShield = false; bStatus.style.display = 'none';
+                        pipes.splice(i, 1); tg.HapticFeedback.notificationOccurred('warning');
                         continue;
                     }
                     gameOver();
                 }
             }
 
-            if (!p.passed && p.x < 65) {
-                p.passed = true; score++;
-                scoreEl.innerText = score;
-                tg.HapticFeedback.impactOccurred('light');
-            }
+            if (!p.passed && p.x < 65) { p.passed = true; score++; scoreEl.innerText = score; }
             if (p.x < -60) pipes.splice(i, 1);
         }
 
         if (bird.y > H || bird.y < -50) gameOver();
 
-        // Птица
         ctx.save();
         ctx.translate(65 + bird.w/2, bird.y + bird.h/2);
         ctx.rotate(Math.min(Math.PI/4, bird.v * 0.1));
@@ -213,10 +197,9 @@
     function saveScore(s) {
         const user = tg.initDataUnsafe.user;
         if(!user) return;
-        const ref = db.ref('leaderboard/' + user.id);
-        ref.once('value', snap => {
+        db.ref('leaderboard/' + user.id).once('value', snap => {
             if(!snap.val() || s > snap.val().score) {
-                ref.set({ name: user.first_name, score: s });
+                db.ref('leaderboard/' + user.id).set({ name: user.first_name, score: s });
             }
         });
     }
@@ -229,19 +212,13 @@
             list.reverse().forEach((p, i) => {
                 html += `<div class="score-row"><span>${i+1}. ${p.name}</span><span>${p.score}</span></div>`;
             });
-            document.getElementById(id).innerHTML = html;
+            document.getElementById(id).innerHTML = list.length > 0 ? html : "Будь первым!";
+        }).catch(() => {
+            document.getElementById(id).innerHTML = "Ошибка базы";
         });
     }
 
-    // Прыжок
-    window.addEventListener('touchstart', (e) => {
-        if(isPlay) {
-            bird.v = -5.5;
-            tg.HapticFeedback.impactOccurred('light');
-        }
-    });
-
-    updateLeaderboard('leaderboard-main');
+    window.addEventListener('touchstart', () => { if(isPlay) bird.v = -5.5; });
 </script>
 </body>
 </html>
