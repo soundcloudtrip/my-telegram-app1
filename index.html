@@ -3,49 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flappy King: CodeGram</title>
+    <title>CodeGram Bird: Final</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
         body { margin: 0; overflow: hidden; background: #f39c12; font-family: 'Press Start 2P', cursive; }
         canvas { display: block; image-rendering: pixelated; }
-        
         #ui-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; align-items: center; justify-content: center;
             background: rgba(0,0,0,0.7); display: none; z-index: 10;
         }
-
         .pixel-box {
             background: #e0e0e0; border: 6px solid #000; padding: 20px;
             width: 85%; max-width: 320px; text-align: center;
             box-shadow: inset -4px -4px 0px #808080, inset 4px 4px 0px #ffffff;
         }
-
         .pixel-btn {
             display: block; width: 100%; padding: 15px 0; margin: 10px 0;
             border: 4px solid #000; background: #f1c40f; color: #000;
             font-family: 'Press Start 2P', cursive; font-size: 10px; cursor: pointer;
             box-shadow: inset -4px -4px 0px #b89200, inset 4px 4px 0px #fff48a;
         }
-
-        .pixel-btn:active { transform: translateY(2px); box-shadow: inset 4px 4px 0px #b89200; }
         .shield-btn { background: #2ecc71; box-shadow: inset -4px -4px 0px #219150, inset 4px 4px 0px #86efac; }
     </style>
 </head>
 <body>
     <canvas id="game"></canvas>
-
     <div id="ui-overlay">
         <div class="pixel-box">
-            <h1 style="font-size:14px; color:red; text-shadow: 2px 2px #000;">GAME OVER</h1>
+            <h1 style="font-size:14px; color:red;">GAME OVER</h1>
             <p style="font-size:10px;">SCORE: <span id="final-score">0</span></p>
             <button id="shield-btn" class="pixel-btn shield-btn">🛡 ПОЛУЧИТЬ ЩИТ</button>
-            <button id="restart-btn" class="pixel-btn">ЗАНОВО</button>
-            <div id="leaderboard" style="margin-top:15px; background:#fff; border:3px solid #000; padding:10px; font-size:8px; text-align:left;">
-                <div style="text-align:center; margin-bottom:5px;">[РЕКОРДЫ]</div>
-                <div id="leader-list">Загрузка...</div>
-            </div>
+            <button onclick="location.reload()" class="pixel-btn">ЗАНОВО</button>
         </div>
     </div>
 
@@ -55,25 +45,18 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // --- ТВОИ ПРЯМЫЕ ССЫЛКИ ---
+        // Заглушки, если картинки не успели подгрузиться (для стабильности)
         const birdImg = new Image(); birdImg.src = 'https://i.postimg.cc/mD8D9N4M/1767185634728.png';
         const pipeImg = new Image(); pipeImg.src = 'https://i.postimg.cc/fLsXf60n/1767185584105.png';
         const bgImg = new Image(); bgImg.src = 'https://i.postimg.cc/pT3Y9fV7/1767185647677.png';
 
-        let bird = { x: 50, y: 150, w: 40, h: 30, gravity: 0.25, velocity: 0, jump: -5, frame: 0, rotation: 0 };
-        let pipes = [];
-        let score = 0;
-        let gameActive = true;
-        let hasShield = true;
-        let shieldClicked = false;
-        let tick = 0;
+        let bird = { x: 50, y: 150, w: 40, h: 30, gravity: 0.25, velocity: 0, jump: -5, frame: 0 };
+        let pipes = []; let score = 0; let gameActive = true; let tick = 0; let shieldUsed = false;
 
         function init() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            pipes = [];
             spawnPipe();
-            updateLeaderboard();
         }
 
         function spawnPipe() {
@@ -84,27 +67,32 @@
 
         function draw() {
             ctx.imageSmoothingEnabled = false;
-            ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+            
+            // Фон
+            if (bgImg.complete) ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+            else { ctx.fillStyle = "#f39c12"; ctx.fillRect(0,0,canvas.width,canvas.height); }
 
             if (gameActive) {
                 tick++;
                 bird.velocity += bird.gravity;
                 bird.y += bird.velocity;
-                if (tick % 8 === 0) bird.frame = (bird.frame + 1) % 4; // Анимация 4-х кадров
+                if (tick % 8 === 0) bird.frame = (bird.frame + 1) % 4;
 
                 for (let i = pipes.length - 1; i >= 0; i--) {
                     pipes[i].x -= 3;
                     
-                    // Отрисовка труб (вырезаем одну трубу из твоего набора)
-                    // Верхняя
-                    ctx.save();
-                    ctx.translate(pipes[i].x + 32, pipes[i].y);
-                    ctx.scale(1, -1);
-                    ctx.drawImage(pipeImg, 0, 0, 26, 120, -32, 0, 64, pipes[i].y);
-                    ctx.restore();
-                    // Нижняя
-                    ctx.drawImage(pipeImg, 0, 0, 26, 120, pipes[i].x, pipes[i].y + 190, 64, canvas.height);
+                    if (pipeImg.complete) {
+                        // Верхняя труба
+                        ctx.save();
+                        ctx.translate(pipes[i].x + 32, pipes[i].y);
+                        ctx.scale(1, -1);
+                        ctx.drawImage(pipeImg, 0, 0, 26, 120, -32, 0, 64, pipes[i].y);
+                        ctx.restore();
+                        // Нижняя труба
+                        ctx.drawImage(pipeImg, 0, 0, 26, 120, pipes[i].x, pipes[i].y + 190, 64, canvas.height);
+                    }
 
+                    // Коллизии
                     if (bird.x+10 < pipes[i].x+64 && bird.x+bird.w-10 > pipes[i].x) {
                         if (bird.y+8 < pipes[i].y || bird.y+bird.h-8 > pipes[i].y + 190) gameOver();
                     }
@@ -118,65 +106,53 @@
                 if (bird.y + bird.h > canvas.height || bird.y < 0) gameOver();
             }
 
-            // Отрисовка синей птицы (спрайт-лист)
-            let sw = birdImg.width / 4;
-            ctx.save();
-            ctx.translate(bird.x + bird.w/2, bird.y + bird.h/2);
-            ctx.rotate(Math.min(Math.PI/2, Math.max(-Math.PI/4, bird.velocity * 0.1)));
-            ctx.drawImage(birdImg, bird.frame * sw, 0, sw, birdImg.height, -bird.w/2, -bird.h/2, bird.w, bird.h);
-            ctx.restore();
-
-            if(gameActive) {
-                ctx.fillStyle = "white"; ctx.strokeStyle = "black"; ctx.lineWidth = 4;
-                ctx.font = "20px 'Press Start 2P'"; ctx.textAlign = "center";
-                ctx.strokeText(score, canvas.width/2, 80); ctx.fillText(score, canvas.width/2, 80);
+            // Птица
+            if (birdImg.complete) {
+                let sw = birdImg.width / 4;
+                ctx.save();
+                ctx.translate(bird.x + bird.w/2, bird.y + bird.h/2);
+                ctx.rotate(Math.min(Math.PI/2, Math.max(-Math.PI/4, bird.velocity * 0.1)));
+                ctx.drawImage(birdImg, bird.frame * sw, 0, sw, birdImg.height, -bird.w/2, -bird.h/2, bird.w, bird.h);
+                ctx.restore();
             }
+
+            // Счет
+            ctx.fillStyle = "white"; ctx.strokeStyle = "black"; ctx.lineWidth = 4;
+            ctx.font = "20px 'Press Start 2P'"; ctx.textAlign = "center";
+            ctx.strokeText(score, canvas.width/2, 80); ctx.fillText(score, canvas.width/2, 80);
+
             requestAnimationFrame(draw);
         }
 
         function gameOver() {
             gameActive = false;
-            tg.HapticFeedback.notificationOccurred('error');
             document.getElementById('ui-overlay').style.display = 'flex';
             document.getElementById('final-score').innerText = score;
-            saveScore(score);
         }
 
+        // Логика щита
         const shieldBtn = document.getElementById('shield-btn');
+        let clickedOnce = false;
         shieldBtn.onclick = () => {
-            if (!shieldClicked) {
+            if (!clickedOnce) {
                 tg.openLink('https://t.me/CodeGramApp');
-                shieldClicked = true;
+                clickedOnce = true;
                 shieldBtn.innerText = "✅ ПРОДОЛЖИТЬ";
             } else {
-                hasShield = false; shieldClicked = false;
-                gameActive = true; bird.y = canvas.height / 2; bird.velocity = 0;
+                gameActive = true;
+                bird.y = canvas.height / 2; bird.velocity = 0;
                 pipes = []; spawnPipe();
                 document.getElementById('ui-overlay').style.display = 'none';
                 shieldBtn.style.display = 'none';
             }
         };
 
-        document.getElementById('restart-btn').onclick = () => { location.reload(); };
-
-        function saveScore(s) {
-            let hs = localStorage.getItem('pixel_hs') || 0;
-            if (s > hs) localStorage.setItem('pixel_hs', s);
-            updateLeaderboard();
-        }
-
-        function updateLeaderboard() {
-            let hs = localStorage.getItem('pixel_hs') || 0;
-            document.getElementById('leader-list').innerHTML = `1. ТЫ (MAX): ${hs}<br>2. ADMIN: 999`;
-        }
-
         window.addEventListener('touchstart', (e) => { 
             if(gameActive) bird.velocity = bird.jump; 
             if(e.target.tagName !== 'BUTTON') e.preventDefault(); 
         }, {passive:false});
 
-        init();
-        draw();
+        init(); draw();
     </script>
 </body>
 </html>
