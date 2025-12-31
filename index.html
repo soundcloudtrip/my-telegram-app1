@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CodeGram Bird</title>
+    <title>Flappy King: CodeGram</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        body { margin: 0; overflow: hidden; background: #4ec0ca; font-family: 'Press Start 2P', cursive; }
+        body { margin: 0; overflow: hidden; background: #f39c12; font-family: 'Press Start 2P', cursive; }
         canvas { display: block; image-rendering: pixelated; }
         
         #ui-overlay {
@@ -31,11 +31,6 @@
 
         .pixel-btn:active { transform: translateY(2px); box-shadow: inset 4px 4px 0px #b89200; }
         .shield-btn { background: #2ecc71; box-shadow: inset -4px -4px 0px #219150, inset 4px 4px 0px #86efac; }
-        
-        #leaderboard {
-            margin-top: 15px; background: #fff; border: 3px solid #000;
-            padding: 10px; text-align: left; font-size: 8px; line-height: 1.6;
-        }
     </style>
 </head>
 <body>
@@ -43,15 +38,13 @@
 
     <div id="ui-overlay">
         <div class="pixel-box">
-            <h1 style="font-size:14px; color:red;">GAME OVER</h1>
+            <h1 style="font-size:14px; color:red; text-shadow: 2px 2px #000;">GAME OVER</h1>
             <p style="font-size:10px;">SCORE: <span id="final-score">0</span></p>
-            
             <button id="shield-btn" class="pixel-btn shield-btn">🛡 ПОЛУЧИТЬ ЩИТ</button>
             <button id="restart-btn" class="pixel-btn">ЗАНОВО</button>
-
-            <div id="leaderboard">
+            <div id="leaderboard" style="margin-top:15px; background:#fff; border:3px solid #000; padding:10px; font-size:8px; text-align:left;">
                 <div style="text-align:center; margin-bottom:5px;">[РЕКОРДЫ]</div>
-                <div id="leader-list">1. ТЫ (MAX): 0<br>2. LEGEND: 120</div>
+                <div id="leader-list">Загрузка...</div>
             </div>
         </div>
     </div>
@@ -62,17 +55,18 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        const birdImg = new Image(); birdImg.src = 'https://i.postimg.cc/8569P49X/bird.png';
-        const pipeImg = new Image(); pipeImg.src = 'https://i.postimg.cc/9F7S09fW/pipe-green.png';
-        const bgImg = new Image(); bgImg.src = 'https://i.postimg.cc/3w9f6K9z/background.png';
+        // --- ТВОИ ПРЯМЫЕ ССЫЛКИ ---
+        const birdImg = new Image(); birdImg.src = 'https://i.postimg.cc/mD8D9N4M/1767185634728.png';
+        const pipeImg = new Image(); pipeImg.src = 'https://i.postimg.cc/fLsXf60n/1767185584105.png';
+        const bgImg = new Image(); bgImg.src = 'https://i.postimg.cc/pT3Y9fV7/1767185647677.png';
 
-        let bird = { x: 50, y: 150, w: 44, h: 32, gravity: 0.25, velocity: 0, jump: -5, rotation: 0 };
+        let bird = { x: 50, y: 150, w: 40, h: 30, gravity: 0.25, velocity: 0, jump: -5, frame: 0, rotation: 0 };
         let pipes = [];
         let score = 0;
         let gameActive = true;
         let hasShield = true;
-        let shieldClicked = false; // Состояние: нажал ли на подписку
-        let pipeGap = 190;
+        let shieldClicked = false;
+        let tick = 0;
 
         function init() {
             canvas.width = window.innerWidth;
@@ -83,7 +77,8 @@
         }
 
         function spawnPipe() {
-            let randomY = Math.random() * (canvas.height - pipeGap - 200) + 100;
+            let gap = 190;
+            let randomY = Math.random() * (canvas.height - gap - 200) + 100;
             pipes.push({ x: canvas.width, y: randomY, passed: false });
         }
 
@@ -92,21 +87,26 @@
             ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
             if (gameActive) {
+                tick++;
                 bird.velocity += bird.gravity;
                 bird.y += bird.velocity;
-                bird.rotation = Math.min(Math.PI/2, Math.max(-Math.PI/4, bird.velocity * 0.1));
+                if (tick % 8 === 0) bird.frame = (bird.frame + 1) % 4; // Анимация 4-х кадров
 
                 for (let i = pipes.length - 1; i >= 0; i--) {
                     pipes[i].x -= 3;
+                    
+                    // Отрисовка труб (вырезаем одну трубу из твоего набора)
+                    // Верхняя
                     ctx.save();
                     ctx.translate(pipes[i].x + 32, pipes[i].y);
                     ctx.scale(1, -1);
-                    ctx.drawImage(pipeImg, -32, 0, 64, pipes[i].y);
+                    ctx.drawImage(pipeImg, 0, 0, 26, 120, -32, 0, 64, pipes[i].y);
                     ctx.restore();
-                    ctx.drawImage(pipeImg, pipes[i].x, pipes[i].y + pipeGap, 64, canvas.height);
+                    // Нижняя
+                    ctx.drawImage(pipeImg, 0, 0, 26, 120, pipes[i].x, pipes[i].y + 190, 64, canvas.height);
 
                     if (bird.x+10 < pipes[i].x+64 && bird.x+bird.w-10 > pipes[i].x) {
-                        if (bird.y+10 < pipes[i].y || bird.y+bird.h-10 > pipes[i].y + pipeGap) gameOver();
+                        if (bird.y+8 < pipes[i].y || bird.y+bird.h-8 > pipes[i].y + 190) gameOver();
                     }
                     if (!pipes[i].passed && pipes[i].x < bird.x) {
                         score++; pipes[i].passed = true;
@@ -118,10 +118,12 @@
                 if (bird.y + bird.h > canvas.height || bird.y < 0) gameOver();
             }
 
+            // Отрисовка синей птицы (спрайт-лист)
+            let sw = birdImg.width / 4;
             ctx.save();
             ctx.translate(bird.x + bird.w/2, bird.y + bird.h/2);
-            ctx.rotate(bird.rotation);
-            ctx.drawImage(birdImg, -bird.w/2, -bird.h/2, bird.w, bird.h);
+            ctx.rotate(Math.min(Math.PI/2, Math.max(-Math.PI/4, bird.velocity * 0.1)));
+            ctx.drawImage(birdImg, bird.frame * sw, 0, sw, birdImg.height, -bird.w/2, -bird.h/2, bird.w, bird.h);
             ctx.restore();
 
             if(gameActive) {
@@ -140,28 +142,18 @@
             saveScore(score);
         }
 
-        // ЛОГИКА КНОПКИ ЩИТА И КАНАЛА
         const shieldBtn = document.getElementById('shield-btn');
         shieldBtn.onclick = () => {
             if (!shieldClicked) {
-                // ШАГ 1: Переход в канал
                 tg.openLink('https://t.me/CodeGramApp');
                 shieldClicked = true;
                 shieldBtn.innerText = "✅ ПРОДОЛЖИТЬ";
-                shieldBtn.style.background = "#3498db";
             } else {
-                // ШАГ 2: Возврат в игру
-                hasShield = false;
-                shieldClicked = false;
-                gameActive = true;
-                bird.y = canvas.height / 2;
-                bird.velocity = 0;
-                pipes = [];
-                spawnPipe();
+                hasShield = false; shieldClicked = false;
+                gameActive = true; bird.y = canvas.height / 2; bird.velocity = 0;
+                pipes = []; spawnPipe();
                 document.getElementById('ui-overlay').style.display = 'none';
-                shieldBtn.innerText = "🛡 ПОЛУЧИТЬ ЩИТ";
-                shieldBtn.style.background = "#2ecc71";
-                shieldBtn.style.display = 'none'; // Убираем щит до следующей смерти
+                shieldBtn.style.display = 'none';
             }
         };
 
@@ -175,7 +167,7 @@
 
         function updateLeaderboard() {
             let hs = localStorage.getItem('pixel_hs') || 0;
-            document.getElementById('leader-list').innerHTML = `1. ТЫ (MAX): ${hs}<br>2. LEGEND: 120`;
+            document.getElementById('leader-list').innerHTML = `1. ТЫ (MAX): ${hs}<br>2. ADMIN: 999`;
         }
 
         window.addEventListener('touchstart', (e) => { 
