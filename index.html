@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CodeGram Bird: Final</title>
+    <title>CodeGram Bird: PRO</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
@@ -25,6 +25,7 @@
             font-family: 'Press Start 2P', cursive; font-size: 10px; cursor: pointer;
             box-shadow: inset -4px -4px 0px #b89200, inset 4px 4px 0px #fff48a;
         }
+        .pixel-btn:active { transform: translateY(2px); box-shadow: inset 4px 4px 0px #b89200; }
         .shield-btn { background: #2ecc71; box-shadow: inset -4px -4px 0px #219150, inset 4px 4px 0px #86efac; }
     </style>
 </head>
@@ -36,9 +37,6 @@
             <p style="font-size:10px;">SCORE: <span id="final-score">0</span></p>
             <button id="shield-btn" class="pixel-btn shield-btn">🛡 ПОЛУЧИТЬ ЩИТ</button>
             <button onclick="location.reload()" class="pixel-btn">ЗАНОВО</button>
-            <div id="leaderboard" style="margin-top:10px; font-size:8px; text-align:left; background:#fff; border:2px solid #000; padding:5px;">
-                TOP: <span id="high-score">0</span>
-            </div>
         </div>
     </div>
 
@@ -48,27 +46,26 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // --- ВШИТАЯ ГРАФИКА (BASE64) ---
-        const birdImg = new Image();
-        birdImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAAAeCAMAAADf87UfAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAABhQTFRF///+AIAAgICA/wAA/wD/AP//AAAA////m0Xv3AAAAAd0Uk5T////////AD9oEpYAAACRSURBVHja7NaxDoMwDETRof//p7shIdEqY6fSOfY6W77EZS86S8pS7vG9773N666X3fW0K0vV0K6l5T7S/H7yW0t9S8m7RAn7SGlK3Eea95HmlvInS9pHmveR5v8saR9p3keat5UvW9K/v+3vO72f/NZS31LyLknIu6Qs5R7vfe/vve9tXve9766nXVmqXWvL+wIMAN0mS8S8YmscAAAAAElFTkSuQmCC'; 
-        // Примечание: Это короткая заглушка, в реальном коде я использую твои файлы ниже
+        // --- ВШИТАЯ ГРАФИКА (ПРЯМЫЕ ССЫЛКИ С ПРОВЕРКОЙ) ---
+        const birdImg = new Image(); 
+        birdImg.crossOrigin = "anonymous";
+        birdImg.src = 'https://i.postimg.cc/mD8D9N4M/1767185634728.png';
 
-        const pipeImg = new Image();
-        pipeImg.src = 'https://i.postimg.cc/fLsXf60n/1767185584105.png'; // Если снова будет синий экран, я скину еще более длинный код с полной кодировкой труб
+        const pipeImg = new Image(); 
+        pipeImg.crossOrigin = "anonymous";
+        pipeImg.src = 'https://i.postimg.cc/fLsXf60n/1767185584105.png';
 
-        const bgImg = new Image();
+        const bgImg = new Image(); 
+        bgImg.crossOrigin = "anonymous";
         bgImg.src = 'https://i.postimg.cc/pT3Y9fV7/1767185647677.png';
 
-        // --- ГЕЙМПЛЕЙ ---
         let bird = { x: 50, y: 150, w: 40, h: 30, gravity: 0.25, velocity: 0, jump: -5, frame: 0 };
-        let pipes = []; let score = 0; let gameActive = true; let tick = 0; let shieldClicked = false;
+        let pipes = []; let score = 0; let gameActive = true; let tick = 0;
 
         function init() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            pipes = [];
-            spawnPipe();
-            document.getElementById('high-score').innerText = localStorage.getItem('pixel_hs') || 0;
+            pipes = []; spawnPipe();
         }
 
         function spawnPipe() {
@@ -80,10 +77,12 @@
         function draw() {
             ctx.imageSmoothingEnabled = false;
             
-            // Отрисовка фона (заливка, если картинка не готова)
-            ctx.fillStyle = "#f39c12"; 
-            ctx.fillRect(0,0,canvas.width,canvas.height);
-            if (bgImg.complete) ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+            // Фон (Если не грузится - рисуем оранжевый)
+            if (bgImg.complete && bgImg.naturalWidth !== 0) {
+                ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = "#f39c12"; ctx.fillRect(0,0,canvas.width,canvas.height);
+            }
 
             if (gameActive) {
                 tick++;
@@ -94,7 +93,7 @@
                 for (let i = pipes.length - 1; i >= 0; i--) {
                     pipes[i].x -= 3;
                     
-                    if (pipeImg.complete) {
+                    if (pipeImg.complete && pipeImg.naturalWidth !== 0) {
                         ctx.save();
                         ctx.translate(pipes[i].x + 32, pipes[i].y);
                         ctx.scale(1, -1);
@@ -102,7 +101,7 @@
                         ctx.restore();
                         ctx.drawImage(pipeImg, 0, 0, 26, 120, pipes[i].x, pipes[i].y + 190, 64, canvas.height);
                     } else {
-                        ctx.fillStyle = "#2ecc71";
+                        ctx.fillStyle = "green"; 
                         ctx.fillRect(pipes[i].x, 0, 64, pipes[i].y);
                         ctx.fillRect(pipes[i].x, pipes[i].y + 190, 64, canvas.height);
                     }
@@ -120,11 +119,11 @@
                 if (bird.y + bird.h > canvas.height || bird.y < 0) gameOver();
             }
 
-            // Птица (всегда отрисовывается: либо спрайт, либо квадрат)
+            // Птица
             ctx.save();
             ctx.translate(bird.x + bird.w/2, bird.y + bird.h/2);
             ctx.rotate(Math.min(Math.PI/2, Math.max(-Math.PI/4, bird.velocity * 0.1)));
-            if (birdImg.complete && birdImg.width > 100) {
+            if (birdImg.complete && birdImg.naturalWidth !== 0) {
                 let sw = birdImg.width / 4;
                 ctx.drawImage(birdImg, bird.frame * sw, 0, sw, birdImg.height, -bird.w/2, -bird.h/2, bird.w, bird.h);
             } else {
@@ -132,7 +131,6 @@
             }
             ctx.restore();
 
-            // Счет
             ctx.fillStyle = "white"; ctx.strokeStyle = "black"; ctx.lineWidth = 4;
             ctx.font = "20px 'Press Start 2P'"; ctx.textAlign = "center";
             ctx.strokeText(score, canvas.width/2, 80); ctx.fillText(score, canvas.width/2, 80);
@@ -142,13 +140,13 @@
 
         function gameOver() {
             gameActive = false;
+            tg.HapticFeedback.notificationOccurred('error');
             document.getElementById('ui-overlay').style.display = 'flex';
             document.getElementById('final-score').innerText = score;
-            let hs = localStorage.getItem('pixel_hs') || 0;
-            if (score > hs) localStorage.setItem('pixel_hs', score);
         }
 
         const shieldBtn = document.getElementById('shield-btn');
+        let shieldClicked = false;
         shieldBtn.onclick = () => {
             if (!shieldClicked) {
                 tg.openLink('https://t.me/CodeGramApp');
