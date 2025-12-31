@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CodeGram Bird Hardcore</title>
+    <title>CodeGram Bird: Smooth & Shiny</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -12,34 +12,30 @@
         body { margin: 0; padding: 0; background: #70c5ce; overflow: hidden; font-family: 'Press Start 2P', cursive; touch-action: none; }
         canvas { display: block; width: 100vw; height: 100vh; }
         
-        #ui-layer { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            display: flex; align-items: center; justify-content: center; z-index: 1000; 
-        }
-        
+        #ui-layer { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1000; }
         .menu-box { 
-            background: rgba(0, 0, 0, 0.9); padding: 20px; border: 4px solid #f1c40f; 
-            text-align: center; color: white; width: 85%; max-width: 300px; border-radius: 15px;
-            pointer-events: all;
+            background: rgba(0, 0, 0, 0.9); padding: 25px; border: 4px solid #f1c40f; 
+            text-align: center; color: white; width: 85%; max-width: 300px; border-radius: 20px;
+            pointer-events: all; box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
         
         button {
             display: block; width: 100%; background: #e67e22; border: none; 
             border-bottom: 4px solid #d35400; color: white; 
             font-family: 'Press Start 2P', cursive; padding: 15px 5px;
-            font-size: 10px; cursor: pointer; margin: 10px 0;
+            font-size: 10px; cursor: pointer; margin: 12px 0; border-radius: 8px;
         }
         
-        .btn-channel { background: #3498db; border-bottom-color: #2980b9; font-size: 8px; line-height: 1.2; }
+        .btn-channel { background: #3498db; border-bottom-color: #2980b9; font-size: 8px; }
 
         #game-score { 
-            position: absolute; top: 50px; width: 100%; text-align: center; 
-            color: white; font-size: 40px; text-shadow: 3px 3px 0 #000; z-index: 10; pointer-events: none; display: none;
+            position: absolute; top: 60px; width: 100%; text-align: center; 
+            color: white; font-size: 45px; text-shadow: 4px 4px 0 #000; z-index: 10; pointer-events: none; display: none;
         }
         
         .leaderboard { margin-top: 15px; font-size: 8px; text-align: left; }
-        .score-row { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding: 4px 0; }
-        #shield-info { font-size: 9px; color: #2ecc71; margin-top: 5px; display: none; }
+        .score-row { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding: 5px 0; }
+        #shield-info { font-size: 10px; color: #2ecc71; margin-top: 10px; display: none; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -48,17 +44,17 @@
 
 <div id="ui-layer">
     <div id="main-menu" class="menu-box">
-        <div style="color: #f1c40f; font-size: 16px; margin-bottom: 15px;">CODEGRAM</div>
+        <div style="color: #f1c40f; font-size: 18px; margin-bottom: 20px; letter-spacing: 2px;">CODEGRAM</div>
         <button id="btn-start">ИГРАТЬ</button>
         <div id="leaderboard-main" class="leaderboard"></div>
     </div>
 
     <div id="death-menu" class="menu-box" style="display: none;">
         <div style="color: #e74c3c; font-size: 16px; margin-bottom: 10px;">GAME OVER</div>
-        <div id="final-score" style="font-size: 12px; margin-bottom: 5px;"></div>
+        <div id="final-score" style="font-size: 12px; margin-bottom: 15px;"></div>
         
-        <div id="shield-info">✅ ЩИТ АКТИВИРОВАН</div>
-        <button id="btn-join" class="btn-channel">ПОДПИШИСЬ НА КАНАЛ<br>ЧТОБЫ ПОЛУЧИТЬ ЩИТ 🛡️</button>
+        <div id="shield-info">✨ ЩИТ ГОТОВ ✨</div>
+        <button id="btn-join" class="btn-channel">ПОДПИШИСЬ НА КАНАЛ<br>ДЛЯ ЗАЩИТЫ 🛡️</button>
         
         <button id="btn-restart">РЕСТАРТ</button>
         <div id="leaderboard-death" class="leaderboard"></div>
@@ -71,9 +67,7 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    const CHANNEL_URL = "https://t.me/CodeGramApp"; 
- 
-
+    const CHANNEL_URL = "https://t.me/CodeGramApp";
     const firebaseConfig = {
         apiKey: "AIzaSyBZnG_M4EG1H8RKLhJJ9GIbZpipurLTpAs",
         databaseURL: "https://birdgame-1649d-default-rtdb.firebaseio.com",
@@ -89,11 +83,10 @@
     const uiLayer = document.getElementById('ui-layer');
     const mainMenu = document.getElementById('main-menu');
     const deathMenu = document.getElementById('death-menu');
-    const shieldInfo = document.getElementById('shield-info');
+    const sInfo = document.getElementById('shield-info');
 
     let W, H, bird, pipes, score, isPlay = false, hasShieldNext = false;
-    let currentSpeed = 3.5;
-    let currentGap = 160;
+    let speed, gap, lastTime, shieldAnim = 0;
 
     const birdImg = new Image(); birdImg.src = 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/yellowbird-midflap.png';
     const bgImg = new Image(); bgImg.src = 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/background-day.png';
@@ -107,13 +100,12 @@
     resize();
 
     window.onload = () => {
-        document.getElementById('btn-start').onclick = (e) => { e.stopPropagation(); startGame(); };
-        document.getElementById('btn-restart').onclick = (e) => { e.stopPropagation(); startGame(); };
-        document.getElementById('btn-join').onclick = (e) => { 
-            e.stopPropagation(); 
+        document.getElementById('btn-start').onclick = startGame;
+        document.getElementById('btn-restart').onclick = startGame;
+        document.getElementById('btn-join').onclick = () => { 
             tg.openTelegramLink(CHANNEL_URL);
-            hasShieldNext = true; // Активируем щит на следующий раунд
-            shieldInfo.style.display = 'block';
+            hasShieldNext = true;
+            sInfo.style.display = 'block';
             document.getElementById('btn-join').style.display = 'none';
             tg.HapticFeedback.notificationOccurred('success');
         };
@@ -124,50 +116,56 @@
         uiLayer.style.display = 'none';
         scoreEl.style.display = 'block';
         
-        // Сброс сложности
-        currentSpeed = 3.5;
-        currentGap = 160;
+        speed = 3.4; // На 2% медленнее для комфортного старта
+        gap = 170;   // Чуть больше пространства вначале
+        score = 0;
+        scoreEl.innerText = "0";
         
         bird = { y: H/2, v: 0, g: 0.25, w: 34, h: 24, shield: hasShieldNext };
-        pipes = []; score = 0;
-        scoreEl.innerText = "0";
-        hasShieldNext = false; // Сбрасываем бонус, так как он применен
-        shieldInfo.style.display = 'none';
+        pipes = [];
+        hasShieldNext = false; 
+        sInfo.style.display = 'none';
         
         isPlay = true;
-        loop();
+        lastTime = performance.now();
+        requestAnimationFrame(loop);
     }
 
-    function loop() {
+    function loop(now) {
         if(!isPlay) return;
+        const dt = (now - lastTime) / 16; // Коррекция под 60 FPS
+        lastTime = now;
 
-        bird.v += bird.g;
-        bird.y += bird.v;
+        bird.v += bird.g * dt;
+        bird.y += bird.v * dt;
 
-        // Плотность преград (уменьшено расстояние между трубами)
-        if (pipes.length === 0 || pipes[pipes.length-1].x < W - 180) {
-            let topHeight = Math.random() * (H - currentGap - 200) + 100;
-            pipes.push({ x: W, top: topHeight, gap: currentGap, passed: false });
+        if (pipes.length === 0 || pipes[pipes.length-1].x < W - 210) {
+            let topH = Math.random() * (H - gap - 200) + 100;
+            pipes.push({ x: W, top: topH, passed: false });
         }
 
         ctx.clearRect(0, 0, W, H);
         ctx.drawImage(bgImg, 0, 0, W, H);
 
+        shieldAnim += 0.05;
+
         for(let i = pipes.length - 1; i >= 0; i--) {
             let p = pipes[i];
-            p.x -= currentSpeed;
+            p.x -= speed * dt;
 
-            ctx.drawImage(pipeImg, p.x, p.top + p.gap, 52, 600);
+            // Отрисовка труб
+            ctx.drawImage(pipeImg, p.x, p.top + gap, 52, 600);
             ctx.save();
             ctx.translate(p.x + 26, p.top); ctx.rotate(Math.PI);
             ctx.drawImage(pipeImg, -26, 0, 52, 600);
             ctx.restore();
 
-            if (65 + bird.w > p.x && 65 < p.x + 52) {
-                if (bird.y < p.top || bird.y + bird.h > p.top + p.gap) {
+            // Коллизия (с запасом 4px для честности)
+            if (65 + bird.w - 4 > p.x && 65 + 4 < p.x + 52) {
+                if (bird.y + 4 < p.top || bird.y + bird.h - 4 > p.top + gap) {
                     if (bird.shield) {
-                        bird.shield = false; 
-                        pipes.splice(i, 1); 
+                        bird.shield = false;
+                        pipes.splice(i, 1);
                         tg.HapticFeedback.notificationOccurred('warning');
                         continue;
                     }
@@ -176,15 +174,11 @@
             }
 
             if (!p.passed && p.x < 65) { 
-                p.passed = true; 
-                score++; 
-                scoreEl.innerText = score; 
-                
-                // УСЛОЖНЕНИЕ каждые 30 очков
-                if (score % 30 === 0) {
-                    currentSpeed += 0.5;
-                    currentGap = Math.max(120, currentGap - 10);
-                    tg.HapticFeedback.notificationOccurred('success');
+                p.passed = true; score++; scoreEl.innerText = score;
+                // Плавное усложнение после 30
+                if(score > 30) {
+                   speed += 0.04;
+                   gap = Math.max(130, gap - 0.5);
                 }
             }
             if (p.x < -60) pipes.splice(i, 1);
@@ -192,14 +186,21 @@
 
         if (bird.y > H || bird.y < -50) gameOver();
 
+        // Птица и КРАСИВЫЙ ЩИТ
         ctx.save();
         ctx.translate(65 + bird.w/2, bird.y + bird.h/2);
         ctx.rotate(Math.min(Math.PI/4, bird.v * 0.1));
+        
         if (bird.shield) {
-            ctx.shadowBlur = 15; ctx.shadowColor = "#2ecc71";
-            ctx.strokeStyle = "#2ecc71"; ctx.lineWidth = 3;
-            ctx.strokeRect(-bird.w/2 - 2, -bird.h/2 - 2, bird.w + 4, bird.h + 4);
+            ctx.beginPath();
+            ctx.arc(0, 0, 25 + Math.sin(shieldAnim)*3, 0, Math.PI*2);
+            ctx.strokeStyle = `rgba(46, 204, 113, ${0.5 + Math.sin(shieldAnim)*0.3})`;
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = "#2ecc71";
         }
+        
         ctx.drawImage(birdImg, -bird.w/2, -bird.h/2, bird.w, bird.h);
         ctx.restore();
 
@@ -213,35 +214,34 @@
         uiLayer.style.display = 'flex';
         mainMenu.style.display = 'none';
         deathMenu.style.display = 'block';
-        document.getElementById('btn-join').style.display = 'block'; // Показываем кнопку подписки только тут
-        document.getElementById('final-score').innerText = "SCORE: " + score;
+        document.getElementById('btn-join').style.display = hasShieldNext ? 'none' : 'block';
+        document.getElementById('final-score').innerText = "СЧЁТ: " + score;
         saveScore(score);
         updateLeaderboard('leaderboard-death');
     }
 
     function saveScore(s) {
-        const user = tg.initDataUnsafe.user;
-        if(!user) return;
-        db.ref('leaderboard/' + user.id).once('value', snap => {
-            if(!snap.val() || s > snap.val().score) {
-                db.ref('leaderboard/' + user.id).set({ name: user.first_name, score: s });
-            }
+        const u = tg.initDataUnsafe.user;
+        if(u) db.ref('leaderboard/' + u.id).once('value', sn => {
+            if(!sn.val() || s > sn.val().score) db.ref('leaderboard/' + u.id).set({ name: u.first_name, score: s });
         });
     }
 
     function updateLeaderboard(id) {
-        db.ref('leaderboard').orderByChild('score').limitToLast(5).once('value', snap => {
-            let html = '<div style="color:#f1c40f; margin-bottom:5px;">TOP 5:</div>';
-            let list = [];
-            snap.forEach(c => list.push(c.val()));
-            list.reverse().forEach((p, i) => {
-                html += `<div class="score-row"><span>${i+1}. ${p.name}</span><span>${p.score}</span></div>`;
-            });
-            document.getElementById(id).innerHTML = list.length > 0 ? html : "Будь первым!";
+        db.ref('leaderboard').orderByChild('score').limitToLast(5).once('value', sn => {
+            let h = '<div style="color:#f1c40f; margin-bottom:8px;">TOP 5:</div>';
+            let l = []; sn.forEach(c => l.push(c.val()));
+            l.reverse().forEach((p, i) => h += `<div class="score-row"><span>${i+1}. ${p.name}</span><span>${p.score}</span></div>`);
+            document.getElementById(id).innerHTML = l.length > 0 ? h : "Стань первым!";
         });
     }
 
-    window.addEventListener('touchstart', () => { if(isPlay) bird.v = -5.5; });
+    window.addEventListener('touchstart', (e) => {
+        if(isPlay) {
+            bird.v = -5.4;
+            tg.HapticFeedback.impactOccurred('light');
+        }
+    });
 </script>
 </body>
 </html>
