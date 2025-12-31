@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CodeGram Bird: Smooth & Shiny</title>
+    <title>CodeGram Bird: Ultimate Fix</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -11,69 +11,59 @@
     <style>
         body { margin: 0; padding: 0; background: #70c5ce; overflow: hidden; font-family: 'Press Start 2P', cursive; touch-action: none; }
         canvas { display: block; width: 100vw; height: 100vh; }
-        
         #ui-layer { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1000; }
         .menu-box { 
             background: rgba(0, 0, 0, 0.9); padding: 25px; border: 4px solid #f1c40f; 
             text-align: center; color: white; width: 85%; max-width: 300px; border-radius: 20px;
-            pointer-events: all; box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            pointer-events: all;
         }
-        
         button {
             display: block; width: 100%; background: #e67e22; border: none; 
             border-bottom: 4px solid #d35400; color: white; 
             font-family: 'Press Start 2P', cursive; padding: 15px 5px;
             font-size: 10px; cursor: pointer; margin: 12px 0; border-radius: 8px;
         }
-        
         .btn-channel { background: #3498db; border-bottom-color: #2980b9; font-size: 8px; }
-
         #game-score { 
             position: absolute; top: 60px; width: 100%; text-align: center; 
             color: white; font-size: 45px; text-shadow: 4px 4px 0 #000; z-index: 10; pointer-events: none; display: none;
         }
-        
         .leaderboard { margin-top: 15px; font-size: 8px; text-align: left; }
         .score-row { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding: 5px 0; }
-        #shield-info { font-size: 10px; color: #2ecc71; margin-top: 10px; display: none; font-weight: bold; }
+        #shield-info { font-size: 10px; color: #2ecc71; margin: 10px 0; display: none; }
     </style>
 </head>
 <body>
 
 <div id="game-score">0</div>
-
 <div id="ui-layer">
     <div id="main-menu" class="menu-box">
-        <div style="color: #f1c40f; font-size: 18px; margin-bottom: 20px; letter-spacing: 2px;">CODEGRAM</div>
+        <div style="color: #f1c40f; font-size: 18px; margin-bottom: 20px;">CODEGRAM</div>
         <button id="btn-start">ИГРАТЬ</button>
         <div id="leaderboard-main" class="leaderboard"></div>
     </div>
 
     <div id="death-menu" class="menu-box" style="display: none;">
         <div style="color: #e74c3c; font-size: 16px; margin-bottom: 10px;">GAME OVER</div>
-        <div id="final-score" style="font-size: 12px; margin-bottom: 15px;"></div>
-        
-        <div id="shield-info">✨ ЩИТ ГОТОВ ✨</div>
-        <button id="btn-join" class="btn-channel">ПОДПИШИСЬ НА КАНАЛ<br>ДЛЯ ЗАЩИТЫ 🛡️</button>
-        
+        <div id="final-score" style="font-size: 12px; margin-bottom: 10px;"></div>
+        <div id="shield-info">✨ ЩИТ ЗАРЯЖЕН ✨</div>
+        <button id="btn-join" class="btn-channel">ПОДПИСАТЬСЯ НА КАНАЛ<br>ЗА ПОЛУЧЕНИЕ ЩИТА 🛡️</button>
         <button id="btn-restart">РЕСТАРТ</button>
         <div id="leaderboard-death" class="leaderboard"></div>
     </div>
 </div>
-
 <canvas id="game"></canvas>
 
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    const CHANNEL_URL = "https://t.me/CodeGramApp";
+    const CHANNEL_URL = "https://t.me/CodeGramApp; 
     const firebaseConfig = {
         apiKey: "AIzaSyBZnG_M4EG1H8RKLhJJ9GIbZpipurLTpAs",
         databaseURL: "https://birdgame-1649d-default-rtdb.firebaseio.com",
         projectId: "birdgame-1649d",
     };
-    
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
@@ -81,11 +71,9 @@
     const ctx = canvas.getContext('2d');
     const scoreEl = document.getElementById('game-score');
     const uiLayer = document.getElementById('ui-layer');
-    const mainMenu = document.getElementById('main-menu');
-    const deathMenu = document.getElementById('death-menu');
     const sInfo = document.getElementById('shield-info');
 
-    let W, H, bird, pipes, score, isPlay = false, hasShieldNext = false;
+    let W, H, bird, pipes, score, isPlay = false, hasShieldPending = false;
     let speed, gap, lastTime, shieldAnim = 0;
 
     const birdImg = new Image(); birdImg.src = 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/yellowbird-midflap.png';
@@ -104,7 +92,7 @@
         document.getElementById('btn-restart').onclick = startGame;
         document.getElementById('btn-join').onclick = () => { 
             tg.openTelegramLink(CHANNEL_URL);
-            hasShieldNext = true;
+            hasShieldPending = true;
             sInfo.style.display = 'block';
             document.getElementById('btn-join').style.display = 'none';
             tg.HapticFeedback.notificationOccurred('success');
@@ -115,17 +103,13 @@
     function startGame() {
         uiLayer.style.display = 'none';
         scoreEl.style.display = 'block';
-        
-        speed = 3.4; // На 2% медленнее для комфортного старта
-        gap = 170;   // Чуть больше пространства вначале
+        speed = 3.3; 
+        gap = 175;
         score = 0;
         scoreEl.innerText = "0";
-        
-        bird = { y: H/2, v: 0, g: 0.25, w: 34, h: 24, shield: hasShieldNext };
+        bird = { y: H/2, v: 0, g: 0.22, w: 34, h: 24, shield: hasShieldPending };
         pipes = [];
-        hasShieldNext = false; 
-        sInfo.style.display = 'none';
-        
+        hasShieldPending = false; // Щит использован
         isPlay = true;
         lastTime = performance.now();
         requestAnimationFrame(loop);
@@ -133,36 +117,36 @@
 
     function loop(now) {
         if(!isPlay) return;
-        const dt = (now - lastTime) / 16; // Коррекция под 60 FPS
+        const dt = Math.min((now - lastTime) / 16, 2);
         lastTime = now;
 
         bird.v += bird.g * dt;
         bird.y += bird.v * dt;
 
-        if (pipes.length === 0 || pipes[pipes.length-1].x < W - 210) {
-            let topH = Math.random() * (H - gap - 200) + 100;
+        // Генерация труб с ограничением по вертикальному перепаду
+        if (pipes.length === 0 || pipes[pipes.length-1].x < W - 220) {
+            let prevY = pipes.length > 0 ? pipes[pipes.length-1].top : H/2;
+            let range = 150; // Птица успеет подняться/опуститься
+            let topH = Math.max(80, Math.min(H - gap - 120, prevY + (Math.random() * range * 2 - range)));
             pipes.push({ x: W, top: topH, passed: false });
         }
 
         ctx.clearRect(0, 0, W, H);
         ctx.drawImage(bgImg, 0, 0, W, H);
-
-        shieldAnim += 0.05;
+        shieldAnim += 0.08;
 
         for(let i = pipes.length - 1; i >= 0; i--) {
             let p = pipes[i];
             p.x -= speed * dt;
 
-            // Отрисовка труб
-            ctx.drawImage(pipeImg, p.x, p.top + gap, 52, 600);
+            ctx.drawImage(pipeImg, p.x, p.top + gap, 52, 1000);
             ctx.save();
             ctx.translate(p.x + 26, p.top); ctx.rotate(Math.PI);
-            ctx.drawImage(pipeImg, -26, 0, 52, 600);
+            ctx.drawImage(pipeImg, -26, 0, 52, 1000);
             ctx.restore();
 
-            // Коллизия (с запасом 4px для честности)
-            if (65 + bird.w - 4 > p.x && 65 + 4 < p.x + 52) {
-                if (bird.y + 4 < p.top || bird.y + bird.h - 4 > p.top + gap) {
+            if (65 + bird.w - 5 > p.x && 65 + 5 < p.x + 52) {
+                if (bird.y + 5 < p.top || bird.y + bird.h - 5 > p.top + gap) {
                     if (bird.shield) {
                         bird.shield = false;
                         pipes.splice(i, 1);
@@ -175,32 +159,23 @@
 
             if (!p.passed && p.x < 65) { 
                 p.passed = true; score++; scoreEl.innerText = score;
-                // Плавное усложнение после 30
-                if(score > 30) {
-                   speed += 0.04;
-                   gap = Math.max(130, gap - 0.5);
-                }
+                if(score > 30) { speed += 0.03; gap = Math.max(135, gap - 0.4); }
             }
             if (p.x < -60) pipes.splice(i, 1);
         }
 
         if (bird.y > H || bird.y < -50) gameOver();
 
-        // Птица и КРАСИВЫЙ ЩИТ
         ctx.save();
         ctx.translate(65 + bird.w/2, bird.y + bird.h/2);
         ctx.rotate(Math.min(Math.PI/4, bird.v * 0.1));
-        
         if (bird.shield) {
             ctx.beginPath();
-            ctx.arc(0, 0, 25 + Math.sin(shieldAnim)*3, 0, Math.PI*2);
-            ctx.strokeStyle = `rgba(46, 204, 113, ${0.5 + Math.sin(shieldAnim)*0.3})`;
-            ctx.lineWidth = 4;
-            ctx.stroke();
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = "#2ecc71";
+            ctx.arc(0, 0, 28 + Math.sin(shieldAnim)*4, 0, Math.PI*2);
+            ctx.strokeStyle = `rgba(46, 204, 113, ${0.6 + Math.sin(shieldAnim)*0.3})`;
+            ctx.lineWidth = 3; ctx.stroke();
+            ctx.shadowBlur = 10; ctx.shadowColor = "#2ecc71";
         }
-        
         ctx.drawImage(birdImg, -bird.w/2, -bird.h/2, bird.w, bird.h);
         ctx.restore();
 
@@ -212,9 +187,9 @@
         tg.HapticFeedback.notificationOccurred('error');
         scoreEl.style.display = 'none';
         uiLayer.style.display = 'flex';
-        mainMenu.style.display = 'none';
-        deathMenu.style.display = 'block';
-        document.getElementById('btn-join').style.display = hasShieldNext ? 'none' : 'block';
+        document.getElementById('main-menu').style.display = 'none';
+        document.getElementById('death-menu').style.display = 'block';
+        document.getElementById('btn-join').style.display = hasShieldPending ? 'none' : 'block';
         document.getElementById('final-score').innerText = "СЧЁТ: " + score;
         saveScore(score);
         updateLeaderboard('leaderboard-death');
@@ -229,18 +204,16 @@
 
     function updateLeaderboard(id) {
         db.ref('leaderboard').orderByChild('score').limitToLast(5).once('value', sn => {
-            let h = '<div style="color:#f1c40f; margin-bottom:8px;">TOP 5:</div>';
-            let l = []; sn.forEach(c => l.push(c.val()));
-            l.reverse().forEach((p, i) => h += `<div class="score-row"><span>${i+1}. ${p.name}</span><span>${p.score}</span></div>`);
+            let l = []; sn.forEach(c => { l.push(c.val()); });
+            l.sort((a, b) => b.score - a.score); // Жесткая сортировка от большего к меньшему
+            let h = '<div style="color:#f1c40f; margin-bottom:8px;">TOP 5 РЕКОРДОВ:</div>';
+            l.forEach((p, i) => h += `<div class="score-row"><span>${i+1}. ${p.name}</span><span>${p.score}</span></div>`);
             document.getElementById(id).innerHTML = l.length > 0 ? h : "Стань первым!";
         });
     }
 
-    window.addEventListener('touchstart', (e) => {
-        if(isPlay) {
-            bird.v = -5.4;
-            tg.HapticFeedback.impactOccurred('light');
-        }
+    window.addEventListener('touchstart', (e) => { 
+        if(isPlay) { bird.v = -5.2; tg.HapticFeedback.impactOccurred('light'); }
     });
 </script>
 </body>
