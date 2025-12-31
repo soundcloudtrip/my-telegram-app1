@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CodeGram Bird Final Fix</title>
+    <title>CodeGram Bird Hardcore</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -19,7 +19,7 @@
         
         .menu-box { 
             background: rgba(0, 0, 0, 0.9); padding: 20px; border: 4px solid #f1c40f; 
-            text-align: center; color: white; width: 80%; max-width: 300px; border-radius: 15px;
+            text-align: center; color: white; width: 85%; max-width: 300px; border-radius: 15px;
             pointer-events: all;
         }
         
@@ -30,7 +30,7 @@
             font-size: 10px; cursor: pointer; margin: 10px 0;
         }
         
-        .btn-channel { background: #3498db; border-bottom-color: #2980b9; }
+        .btn-channel { background: #3498db; border-bottom-color: #2980b9; font-size: 8px; line-height: 1.2; }
 
         #game-score { 
             position: absolute; top: 50px; width: 100%; text-align: center; 
@@ -39,7 +39,7 @@
         
         .leaderboard { margin-top: 15px; font-size: 8px; text-align: left; }
         .score-row { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding: 4px 0; }
-        #bonus-status { font-size: 10px; color: #2ecc71; margin-bottom: 10px; display: none; }
+        #shield-info { font-size: 9px; color: #2ecc71; margin-top: 5px; display: none; }
     </style>
 </head>
 <body>
@@ -49,15 +49,17 @@
 <div id="ui-layer">
     <div id="main-menu" class="menu-box">
         <div style="color: #f1c40f; font-size: 16px; margin-bottom: 15px;">CODEGRAM</div>
-        <div id="bonus-status">✅ ЩИТ АКТИВИРОВАН</div>
-        <button id="btn-join" class="btn-channel">📢 КАНАЛ (+ЩИТ)</button>
         <button id="btn-start">ИГРАТЬ</button>
-        <div id="leaderboard-main" class="leaderboard">Загрузка...</div>
+        <div id="leaderboard-main" class="leaderboard"></div>
     </div>
 
     <div id="death-menu" class="menu-box" style="display: none;">
         <div style="color: #e74c3c; font-size: 16px; margin-bottom: 10px;">GAME OVER</div>
-        <div id="final-score" style="font-size: 12px; margin-bottom: 10px;"></div>
+        <div id="final-score" style="font-size: 12px; margin-bottom: 5px;"></div>
+        
+        <div id="shield-info">✅ ЩИТ АКТИВИРОВАН</div>
+        <button id="btn-join" class="btn-channel">ПОДПИШИСЬ НА КАНАЛ<br>ЧТОБЫ ПОЛУЧИТЬ ЩИТ 🛡️</button>
+        
         <button id="btn-restart">РЕСТАРТ</button>
         <div id="leaderboard-death" class="leaderboard"></div>
     </div>
@@ -69,7 +71,6 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // Замени на свою ссылку!
     const CHANNEL_URL = "https://t.me/your_channel_username"; 
 
     const firebaseConfig = {
@@ -87,11 +88,12 @@
     const uiLayer = document.getElementById('ui-layer');
     const mainMenu = document.getElementById('main-menu');
     const deathMenu = document.getElementById('death-menu');
-    const bStatus = document.getElementById('bonus-status');
+    const shieldInfo = document.getElementById('shield-info');
 
-    let W, H, bird, pipes, score, isPlay = false, hasShield = false;
+    let W, H, bird, pipes, score, isPlay = false, hasShieldNext = false;
+    let currentSpeed = 3.5;
+    let currentGap = 160;
 
-    // Исправленные ссылки на ассеты
     const birdImg = new Image(); birdImg.src = 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/yellowbird-midflap.png';
     const bgImg = new Image(); bgImg.src = 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/background-day.png';
     const pipeImg = new Image(); pipeImg.src = 'https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/pipe-green.png';
@@ -103,15 +105,15 @@
     window.addEventListener('resize', resize);
     resize();
 
-    // Инициализация кнопок после загрузки
     window.onload = () => {
         document.getElementById('btn-start').onclick = (e) => { e.stopPropagation(); startGame(); };
         document.getElementById('btn-restart').onclick = (e) => { e.stopPropagation(); startGame(); };
         document.getElementById('btn-join').onclick = (e) => { 
             e.stopPropagation(); 
             tg.openTelegramLink(CHANNEL_URL);
-            hasShield = true;
-            bStatus.style.display = 'block';
+            hasShieldNext = true; // Активируем щит на следующий раунд
+            shieldInfo.style.display = 'block';
+            document.getElementById('btn-join').style.display = 'none';
             tg.HapticFeedback.notificationOccurred('success');
         };
         updateLeaderboard('leaderboard-main');
@@ -120,9 +122,17 @@
     function startGame() {
         uiLayer.style.display = 'none';
         scoreEl.style.display = 'block';
-        bird = { y: H/2, v: 0, g: 0.25, w: 34, h: 24, shield: hasShield };
+        
+        // Сброс сложности
+        currentSpeed = 3.5;
+        currentGap = 160;
+        
+        bird = { y: H/2, v: 0, g: 0.25, w: 34, h: 24, shield: hasShieldNext };
         pipes = []; score = 0;
         scoreEl.innerText = "0";
+        hasShieldNext = false; // Сбрасываем бонус, так как он применен
+        shieldInfo.style.display = 'none';
+        
         isPlay = true;
         loop();
     }
@@ -133,10 +143,10 @@
         bird.v += bird.g;
         bird.y += bird.v;
 
-        if (pipes.length === 0 || pipes[pipes.length-1].x < W - 200) {
-            let gap = 150;
-            let topHeight = Math.random() * (H - gap - 200) + 100;
-            pipes.push({ x: W, top: topHeight, gap: gap, passed: false });
+        // Плотность преград (уменьшено расстояние между трубами)
+        if (pipes.length === 0 || pipes[pipes.length-1].x < W - 180) {
+            let topHeight = Math.random() * (H - currentGap - 200) + 100;
+            pipes.push({ x: W, top: topHeight, gap: currentGap, passed: false });
         }
 
         ctx.clearRect(0, 0, W, H);
@@ -144,7 +154,7 @@
 
         for(let i = pipes.length - 1; i >= 0; i--) {
             let p = pipes[i];
-            p.x -= 3.5;
+            p.x -= currentSpeed;
 
             ctx.drawImage(pipeImg, p.x, p.top + p.gap, 52, 600);
             ctx.save();
@@ -155,15 +165,27 @@
             if (65 + bird.w > p.x && 65 < p.x + 52) {
                 if (bird.y < p.top || bird.y + bird.h > p.top + p.gap) {
                     if (bird.shield) {
-                        bird.shield = false; hasShield = false; bStatus.style.display = 'none';
-                        pipes.splice(i, 1); tg.HapticFeedback.notificationOccurred('warning');
+                        bird.shield = false; 
+                        pipes.splice(i, 1); 
+                        tg.HapticFeedback.notificationOccurred('warning');
                         continue;
                     }
                     gameOver();
                 }
             }
 
-            if (!p.passed && p.x < 65) { p.passed = true; score++; scoreEl.innerText = score; }
+            if (!p.passed && p.x < 65) { 
+                p.passed = true; 
+                score++; 
+                scoreEl.innerText = score; 
+                
+                // УСЛОЖНЕНИЕ каждые 30 очков
+                if (score % 30 === 0) {
+                    currentSpeed += 0.5;
+                    currentGap = Math.max(120, currentGap - 10);
+                    tg.HapticFeedback.notificationOccurred('success');
+                }
+            }
             if (p.x < -60) pipes.splice(i, 1);
         }
 
@@ -174,7 +196,8 @@
         ctx.rotate(Math.min(Math.PI/4, bird.v * 0.1));
         if (bird.shield) {
             ctx.shadowBlur = 15; ctx.shadowColor = "#2ecc71";
-            ctx.strokeStyle = "#2ecc71"; ctx.strokeRect(-bird.w/2, -bird.h/2, bird.w, bird.h);
+            ctx.strokeStyle = "#2ecc71"; ctx.lineWidth = 3;
+            ctx.strokeRect(-bird.w/2 - 2, -bird.h/2 - 2, bird.w + 4, bird.h + 4);
         }
         ctx.drawImage(birdImg, -bird.w/2, -bird.h/2, bird.w, bird.h);
         ctx.restore();
@@ -189,6 +212,7 @@
         uiLayer.style.display = 'flex';
         mainMenu.style.display = 'none';
         deathMenu.style.display = 'block';
+        document.getElementById('btn-join').style.display = 'block'; // Показываем кнопку подписки только тут
         document.getElementById('final-score').innerText = "SCORE: " + score;
         saveScore(score);
         updateLeaderboard('leaderboard-death');
@@ -213,8 +237,6 @@
                 html += `<div class="score-row"><span>${i+1}. ${p.name}</span><span>${p.score}</span></div>`;
             });
             document.getElementById(id).innerHTML = list.length > 0 ? html : "Будь первым!";
-        }).catch(() => {
-            document.getElementById(id).innerHTML = "Ошибка базы";
         });
     }
 
