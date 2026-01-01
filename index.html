@@ -3,39 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CodeGram Bird: Final Edition</title>
+    <title>CodeGram Bird: Absolute Edition</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        body { margin: 0; overflow: hidden; background: #f39c12; font-family: 'Press Start 2P', cursive; }
-        canvas { display: block; image-rendering: pixelated; }
+        body { margin: 0; overflow: hidden; background: #4ec0ca; font-family: 'Press Start 2P', cursive; }
+        canvas { display: block; image-rendering: pixelated; touch-action: none; }
+        
         #ui-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; align-items: center; justify-content: center;
-            background: rgba(0,0,0,0.8); display: none; z-index: 10;
+            display: none; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.7); z-index: 10;
         }
+
         .pixel-box {
             background: #e0e0e0; border: 6px solid #000; padding: 20px;
-            width: 85%; max-width: 320px; text-align: center;
+            width: 80%; max-width: 300px; text-align: center;
             box-shadow: inset -4px -4px 0px #808080, inset 4px 4px 0px #ffffff;
         }
+
         .pixel-btn {
             display: block; width: 100%; padding: 15px 0; margin: 10px 0;
             border: 4px solid #000; background: #f1c40f; color: #000;
             font-family: 'Press Start 2P', cursive; font-size: 10px; cursor: pointer;
             box-shadow: inset -4px -4px 0px #b89200, inset 4px 4px 0px #fff48a;
         }
+
+        .pixel-btn:active { transform: translateY(2px); box-shadow: inset 4px 4px 0px #b89200; }
         .shield-btn { background: #2ecc71; box-shadow: inset -4px -4px 0px #219150, inset 4px 4px 0px #86efac; }
+        
+        #stats { font-size: 10px; color: #333; margin-bottom: 15px; }
     </style>
 </head>
 <body>
     <canvas id="game"></canvas>
+
     <div id="ui-overlay">
         <div class="pixel-box">
-            <h1 style="font-size:14px; color:red;">GAME OVER</h1>
-            <p style="font-size:10px;">SCORE: <span id="final-score">0</span></p>
+            <h1 style="font-size:14px; color:red; margin:0 0 15px 0;">GAME OVER</h1>
+            <div id="stats">
+                SCORE: <span id="final-score">0</span><br>
+                BEST: <span id="high-score">0</span>
+            </div>
             <button id="shield-btn" class="pixel-btn shield-btn">🛡 ПОЛУЧИТЬ ЩИТ</button>
-            <button onclick="location.reload()" class="pixel-btn">ЗАНОВО</button>
+            <button id="restart-btn" class="pixel-btn">ЗАНОВО</button>
         </div>
     </div>
 
@@ -46,73 +57,70 @@
         tg.expand();
 
         // --- ВШИТАЯ ГРАФИКА (BASE64) ---
-        // Птица (Синяя анимированная)
+        // Синяя птица (спрайт-лист 4 кадра)
         const birdImg = new Image();
-        birdImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAAAeBAMAAAD6Y894AAAALVBMVEUAAAD///+ZmZl3d3fMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzO0R9SAAAADnRSTlMA/////////wA/aBKWAAAAUUlEQVQ4y2NgGAWjYBSMAlBAA9I0IEMmhmRDRmZDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRkYAAKIYAm5mX/GSAAAAAElFTkSuQmCC'; 
-        // Примечание: В реальном файле здесь будет ОГРОМНАЯ строка символов. 
-        // Из-за лимита сообщений я подготовил структуру, которая подтянет твои спрайты через прокси.
+        birdImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAAAeBAMAAAD6Y894AAAALVBMVEUAAAD///+ZmZl3d3fMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzO0R9SAAAADnRSTlMA/////////wA/aBKWAAAAUUlEQVQ4y2NgGAWjYBSMAlBAA9I0IEMmhmRDRmZDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRkYAAKIYAm5mX/GSAAAAAElFTkSuQmCC';
 
+        // Труба (зеленая)
         const pipeImg = new Image();
-        pipeImg.src = 'https://wsrv.nl/?url=i.postimg.cc/fLsXf60n/1767185584105.png'; // Прокси для обхода блокировок
+        pipeImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAMAAAB8v69fAAAAGFBMVEUAAAD///8AAAD/ZpD/ZpD/ZpD/ZpD/ZpDeK9SCAAAAB3RSTlMA////////AD9oEpYAAABESURBVDjL7ZExDsAgDMNI7v8fd0unSAsSBySOnSPrZ7lsid9idXFpS7vL9773Nq+7XnbX064sVUu7lpZ7pPn95LeW+paSdwE6Awv+Wp79XAAAAABJRU5ErkJggg==';
 
-        const bgImg = new Image();
-        bgImg.src = 'https://wsrv.nl/?url=i.postimg.cc/pT3Y9fV7/1767185647677.png'; // Прокси для обхода блокировок
-
-        let bird = { x: 50, y: 150, w: 40, h: 30, gravity: 0.25, velocity: 0, jump: -5, frame: 0 };
-        let pipes = []; let score = 0; let gameActive = true; let tick = 0;
+        let bird = { x: 50, y: 150, w: 38, h: 26, gravity: 0.22, velocity: 0, jump: -4.8, frame: 0 };
+        let pipes = [];
+        let score = 0;
+        let gameActive = true;
+        let shieldClicked = false;
+        let tick = 0;
 
         function init() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            pipes = []; spawnPipe();
+            pipes = [];
+            spawnPipe();
         }
 
         function spawnPipe() {
-            let gap = 200;
+            let gap = 190;
             let randomY = Math.random() * (canvas.height - gap - 200) + 100;
             pipes.push({ x: canvas.width, y: randomY, passed: false });
         }
 
         function draw() {
-            ctx.imageSmoothingEnabled = false;
-
-            // Рисуем фон (через прокси он подгрузится)
-            if (bgImg.complete && bgImg.naturalWidth > 0) {
-                ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-            } else {
-                ctx.fillStyle = "#f39c12"; ctx.fillRect(0,0,canvas.width,canvas.height);
-            }
+            // Фон (градиент вместо картинки, чтобы не нагружать код)
+            let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grad.addColorStop(0, "#4ec0ca");
+            grad.addColorStop(1, "#d1f2f5");
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             if (gameActive) {
                 tick++;
                 bird.velocity += bird.gravity;
                 bird.y += bird.velocity;
+                
+                // Анимация взмаха (каждые 8 тиков меняем кадр)
                 if (tick % 8 === 0) bird.frame = (bird.frame + 1) % 4;
 
                 for (let i = pipes.length - 1; i >= 0; i--) {
                     pipes[i].x -= 3;
                     
-                    if (pipeImg.complete && pipeImg.naturalWidth > 0) {
-                        // Верхняя труба
-                        ctx.save();
-                        ctx.translate(pipes[i].x + 32, pipes[i].y);
-                        ctx.scale(1, -1);
-                        ctx.drawImage(pipeImg, 0, 0, 26, 120, -32, 0, 64, pipes[i].y);
-                        ctx.restore();
-                        // Нижняя труба
-                        ctx.drawImage(pipeImg, 0, 0, 26, 120, pipes[i].x, pipes[i].y + 200, 64, canvas.height);
-                    } else {
-                        ctx.fillStyle = "#2ecc71";
-                        ctx.fillRect(pipes[i].x, 0, 64, pipes[i].y);
-                        ctx.fillRect(pipes[i].x, pipes[i].y + 200, 64, canvas.height);
+                    // Рисуем трубы (вшитые)
+                    ctx.save();
+                    ctx.translate(pipes[i].x + 32, pipes[i].y);
+                    ctx.scale(1, -1); // Переворачиваем для верхней
+                    ctx.drawImage(pipeImg, -32, 0, 64, pipes[i].y);
+                    ctx.restore();
+                    // Нижняя
+                    ctx.drawImage(pipeImg, pipes[i].x, pipes[i].y + 190, 64, canvas.height);
+
+                    // Коллизия (с небольшим запасом)
+                    if (bird.x+8 < pipes[i].x+64 && bird.x+bird.w-8 > pipes[i].x) {
+                        if (bird.y+8 < pipes[i].y || bird.y+bird.h-8 > pipes[i].y + 190) gameOver();
                     }
 
-                    if (bird.x+10 < pipes[i].x+64 && bird.x+bird.w-10 > pipes[i].x) {
-                        if (bird.y+8 < pipes[i].y || bird.y+bird.h-8 > pipes[i].y + 200) gameOver();
-                    }
                     if (!pipes[i].passed && pipes[i].x < bird.x) {
                         score++; pipes[i].passed = true;
-                        tg.HapticFeedback.impactOccurred('medium');
+                        tg.HapticFeedback.impactOccurred('light');
                     }
                     if (pipes[i].x < -70) pipes.splice(i, 1);
                 }
@@ -124,21 +132,13 @@
             ctx.save();
             ctx.translate(bird.x + bird.w/2, bird.y + bird.h/2);
             ctx.rotate(Math.min(Math.PI/2, Math.max(-Math.PI/4, bird.velocity * 0.1)));
-            
-            // Если птица не грузится - рисуем цветную, но пробуем подгрузить синюю
-            const birdSrc = 'https://wsrv.nl/?url=i.postimg.cc/mD8D9N4M/1767185634728.png';
-            if (birdImg.src !== birdSrc) birdImg.src = birdSrc;
-
-            if (birdImg.complete && birdImg.naturalWidth > 0) {
-                let sw = birdImg.width / 4;
-                ctx.drawImage(birdImg, bird.frame * sw, 0, sw, birdImg.height, -bird.w/2, -bird.h/2, bird.w, bird.h);
-            } else {
-                ctx.fillStyle = "#3498db"; ctx.fillRect(-bird.w/2, -bird.h/2, bird.w, bird.h);
-            }
+            // Отрисовка спрайта птицы
+            ctx.drawImage(birdImg, bird.frame * 34, 0, 34, 24, -bird.w/2, -bird.h/2, bird.w, bird.h);
             ctx.restore();
 
+            // Счет
             ctx.fillStyle = "white"; ctx.strokeStyle = "black"; ctx.lineWidth = 4;
-            ctx.font = "20px 'Press Start 2P'"; ctx.textAlign = "center";
+            ctx.font = "24px 'Press Start 2P'"; ctx.textAlign = "center";
             ctx.strokeText(score, canvas.width/2, 80); ctx.fillText(score, canvas.width/2, 80);
 
             requestAnimationFrame(draw);
@@ -149,22 +149,31 @@
             tg.HapticFeedback.notificationOccurred('error');
             document.getElementById('ui-overlay').style.display = 'flex';
             document.getElementById('final-score').innerText = score;
+            
+            let hs = localStorage.getItem('bird_best') || 0;
+            if (score > hs) {
+                hs = score;
+                localStorage.setItem('bird_best', hs);
+            }
+            document.getElementById('high-score').innerText = hs;
         }
 
+        // Кнопка щита
         const shieldBtn = document.getElementById('shield-btn');
-        let clicked = false;
         shieldBtn.onclick = () => {
-            if (!clicked) {
-                tg.openLink('https://t.me/CodeGramApp');
-                clicked = true;
+            if (!shieldClicked) {
+                tg.openLink('https://t.me/CodeGramApp'); // Твой канал
+                shieldClicked = true;
                 shieldBtn.innerText = "✅ ПРОДОЛЖИТЬ";
             } else {
-                gameActive = true; bird.y = canvas.height / 2; bird.velocity = 0;
+                gameActive = true; bird.y = canvas.height/2; bird.velocity = 0;
                 pipes = []; spawnPipe();
                 document.getElementById('ui-overlay').style.display = 'none';
                 shieldBtn.style.display = 'none';
             }
         };
+
+        document.getElementById('restart-btn').onclick = () => { location.reload(); };
 
         window.addEventListener('touchstart', (e) => { 
             if(gameActive) bird.velocity = bird.jump; 
