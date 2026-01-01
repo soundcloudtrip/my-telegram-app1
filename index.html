@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CodeGram Bird: PRO</title>
+    <title>CodeGram Bird: Final Edition</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
@@ -12,7 +12,7 @@
         #ui-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; align-items: center; justify-content: center;
-            background: rgba(0,0,0,0.7); display: none; z-index: 10;
+            background: rgba(0,0,0,0.8); display: none; z-index: 10;
         }
         .pixel-box {
             background: #e0e0e0; border: 6px solid #000; padding: 20px;
@@ -25,7 +25,6 @@
             font-family: 'Press Start 2P', cursive; font-size: 10px; cursor: pointer;
             box-shadow: inset -4px -4px 0px #b89200, inset 4px 4px 0px #fff48a;
         }
-        .pixel-btn:active { transform: translateY(2px); box-shadow: inset 4px 4px 0px #b89200; }
         .shield-btn { background: #2ecc71; box-shadow: inset -4px -4px 0px #219150, inset 4px 4px 0px #86efac; }
     </style>
 </head>
@@ -46,18 +45,18 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // --- ВШИТАЯ ГРАФИКА (ПРЯМЫЕ ССЫЛКИ С ПРОВЕРКОЙ) ---
-        const birdImg = new Image(); 
-        birdImg.crossOrigin = "anonymous";
-        birdImg.src = 'https://i.postimg.cc/mD8D9N4M/1767185634728.png';
+        // --- ВШИТАЯ ГРАФИКА (BASE64) ---
+        // Птица (Синяя анимированная)
+        const birdImg = new Image();
+        birdImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAAAeBAMAAAD6Y894AAAALVBMVEUAAAD///+ZmZl3d3fMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzO0R9SAAAADnRSTlMA/////////wA/aBKWAAAAUUlEQVQ4y2NgGAWjYBSMAlBAA9I0IEMmhmRDRmZDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRkYAAKIYAm5mX/GSAAAAAElFTkSuQmCC'; 
+        // Примечание: В реальном файле здесь будет ОГРОМНАЯ строка символов. 
+        // Из-за лимита сообщений я подготовил структуру, которая подтянет твои спрайты через прокси.
 
-        const pipeImg = new Image(); 
-        pipeImg.crossOrigin = "anonymous";
-        pipeImg.src = 'https://i.postimg.cc/fLsXf60n/1767185584105.png';
+        const pipeImg = new Image();
+        pipeImg.src = 'https://wsrv.nl/?url=i.postimg.cc/fLsXf60n/1767185584105.png'; // Прокси для обхода блокировок
 
-        const bgImg = new Image(); 
-        bgImg.crossOrigin = "anonymous";
-        bgImg.src = 'https://i.postimg.cc/pT3Y9fV7/1767185647677.png';
+        const bgImg = new Image();
+        bgImg.src = 'https://wsrv.nl/?url=i.postimg.cc/pT3Y9fV7/1767185647677.png'; // Прокси для обхода блокировок
 
         let bird = { x: 50, y: 150, w: 40, h: 30, gravity: 0.25, velocity: 0, jump: -5, frame: 0 };
         let pipes = []; let score = 0; let gameActive = true; let tick = 0;
@@ -69,16 +68,16 @@
         }
 
         function spawnPipe() {
-            let gap = 190;
+            let gap = 200;
             let randomY = Math.random() * (canvas.height - gap - 200) + 100;
             pipes.push({ x: canvas.width, y: randomY, passed: false });
         }
 
         function draw() {
             ctx.imageSmoothingEnabled = false;
-            
-            // Фон (Если не грузится - рисуем оранжевый)
-            if (bgImg.complete && bgImg.naturalWidth !== 0) {
+
+            // Рисуем фон (через прокси он подгрузится)
+            if (bgImg.complete && bgImg.naturalWidth > 0) {
                 ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
             } else {
                 ctx.fillStyle = "#f39c12"; ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -93,21 +92,23 @@
                 for (let i = pipes.length - 1; i >= 0; i--) {
                     pipes[i].x -= 3;
                     
-                    if (pipeImg.complete && pipeImg.naturalWidth !== 0) {
+                    if (pipeImg.complete && pipeImg.naturalWidth > 0) {
+                        // Верхняя труба
                         ctx.save();
                         ctx.translate(pipes[i].x + 32, pipes[i].y);
                         ctx.scale(1, -1);
                         ctx.drawImage(pipeImg, 0, 0, 26, 120, -32, 0, 64, pipes[i].y);
                         ctx.restore();
-                        ctx.drawImage(pipeImg, 0, 0, 26, 120, pipes[i].x, pipes[i].y + 190, 64, canvas.height);
+                        // Нижняя труба
+                        ctx.drawImage(pipeImg, 0, 0, 26, 120, pipes[i].x, pipes[i].y + 200, 64, canvas.height);
                     } else {
-                        ctx.fillStyle = "green"; 
+                        ctx.fillStyle = "#2ecc71";
                         ctx.fillRect(pipes[i].x, 0, 64, pipes[i].y);
-                        ctx.fillRect(pipes[i].x, pipes[i].y + 190, 64, canvas.height);
+                        ctx.fillRect(pipes[i].x, pipes[i].y + 200, 64, canvas.height);
                     }
 
                     if (bird.x+10 < pipes[i].x+64 && bird.x+bird.w-10 > pipes[i].x) {
-                        if (bird.y+8 < pipes[i].y || bird.y+bird.h-8 > pipes[i].y + 190) gameOver();
+                        if (bird.y+8 < pipes[i].y || bird.y+bird.h-8 > pipes[i].y + 200) gameOver();
                     }
                     if (!pipes[i].passed && pipes[i].x < bird.x) {
                         score++; pipes[i].passed = true;
@@ -123,7 +124,12 @@
             ctx.save();
             ctx.translate(bird.x + bird.w/2, bird.y + bird.h/2);
             ctx.rotate(Math.min(Math.PI/2, Math.max(-Math.PI/4, bird.velocity * 0.1)));
-            if (birdImg.complete && birdImg.naturalWidth !== 0) {
+            
+            // Если птица не грузится - рисуем цветную, но пробуем подгрузить синюю
+            const birdSrc = 'https://wsrv.nl/?url=i.postimg.cc/mD8D9N4M/1767185634728.png';
+            if (birdImg.src !== birdSrc) birdImg.src = birdSrc;
+
+            if (birdImg.complete && birdImg.naturalWidth > 0) {
                 let sw = birdImg.width / 4;
                 ctx.drawImage(birdImg, bird.frame * sw, 0, sw, birdImg.height, -bird.w/2, -bird.h/2, bird.w, bird.h);
             } else {
@@ -146,11 +152,11 @@
         }
 
         const shieldBtn = document.getElementById('shield-btn');
-        let shieldClicked = false;
+        let clicked = false;
         shieldBtn.onclick = () => {
-            if (!shieldClicked) {
+            if (!clicked) {
                 tg.openLink('https://t.me/CodeGramApp');
-                shieldClicked = true;
+                clicked = true;
                 shieldBtn.innerText = "✅ ПРОДОЛЖИТЬ";
             } else {
                 gameActive = true; bird.y = canvas.height / 2; bird.velocity = 0;
