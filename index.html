@@ -3,43 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Original Flappy CodeGram</title>
+    <title>Flappy Bird: CodeGram Edition</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        
         body { margin: 0; overflow: hidden; background: #4ec0ca; font-family: 'Press Start 2P', cursive; }
         canvas { display: block; image-rendering: pixelated; touch-action: none; }
-        
+
         #ui-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: none; align-items: center; justify-content: center;
-            background: rgba(0,0,0,0.6); z-index: 10;
+            background: rgba(0,0,0,0.5); z-index: 10;
         }
 
         .pixel-box {
-            background: #ded895; border: 4px solid #543847; padding: 20px;
-            width: 80%; max-width: 300px; text-align: center; border-radius: 10px;
+            background: #ded895; border: 4px solid #543847; padding: 25px;
+            width: 80%; max-width: 280px; text-align: center; border-radius: 15px;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.2);
         }
 
         .pixel-btn {
-            display: block; width: 100%; padding: 12px 0; margin: 10px 0;
+            display: block; width: 100%; padding: 15px 0; margin: 12px 0;
             border: 3px solid #543847; background: #e86101; color: #fff;
             font-family: 'Press Start 2P', cursive; font-size: 10px; cursor: pointer;
-            box-shadow: 0 4px 0 #a04000;
+            box-shadow: 0 4px 0 #a04000; outline: none;
         }
 
         .pixel-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #a04000; }
         .shield-btn { background: #2ecc71; box-shadow: 0 4px 0 #1b8a4a; }
         
-        #score-board { color: #543847; font-size: 12px; line-height: 1.5; margin-bottom: 10px; }
+        #score-board { color: #543847; font-size: 11px; margin-bottom: 15px; line-height: 1.6; }
     </style>
 </head>
 <body>
+
     <canvas id="game"></canvas>
 
     <div id="ui-overlay">
         <div class="pixel-box">
-            <h2 style="color: #fff; text-shadow: 2px 2px #543847; margin-top: 0;">GAME OVER</h2>
+            <h2 style="color: #fff; text-shadow: 2px 2px #543847; margin: 0 0 15px 0; font-size: 16px;">GAME OVER</h2>
             <div id="score-board">
                 SCORE: <span id="final-score">0</span><br>
                 BEST: <span id="high-score">0</span>
@@ -55,45 +58,46 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // --- ОРИГИНАЛЬНЫЕ СПРАЙТЫ ---
-        const assets = {
-            bird: 'https://wsrv.nl/?url=raw.githubusercontent.com/sourabhv/FlappyBirdPython/master/assets/sprites/yellowbird-midflap.png',
-            pipe: 'https://wsrv.nl/?url=raw.githubusercontent.com/sourabhv/FlappyBirdPython/master/assets/sprites/pipe-green.png',
-            bg: 'https://wsrv.nl/?url=raw.githubusercontent.com/sourabhv/FlappyBirdPython/master/assets/sprites/background-day.png'
-        };
+        // Спрайты (Оригинал через надежный прокси)
+        const BIRD_SRC = 'https://wsrv.nl/?url=raw.githubusercontent.com/sourabhv/FlappyBirdPython/master/assets/sprites/yellowbird-midflap.png';
+        const PIPE_SRC = 'https://wsrv.nl/?url=raw.githubusercontent.com/sourabhv/FlappyBirdPython/master/assets/sprites/pipe-green.png';
+        const BG_SRC = 'https://wsrv.nl/?url=raw.githubusercontent.com/sourabhv/FlappyBirdPython/master/assets/sprites/background-day.png';
 
-        const birdImg = new Image(); birdImg.src = assets.bird;
-        const pipeImg = new Image(); pipeImg.src = assets.pipe;
-        const bgImg = new Image(); bgImg.src = assets.bg;
+        const birdImg = new Image(); birdImg.src = BIRD_SRC;
+        const pipeImg = new Image(); pipeImg.src = PIPE_SRC;
+        const bgImg = new Image(); bgImg.src = BG_SRC;
 
         let bird = { x: 50, y: 150, w: 34, h: 24, gravity: 0.25, velocity: 0, jump: -5 };
         let pipes = [];
         let score = 0;
         let gameActive = true;
-        let shieldAvailable = true;
-        let shieldStep = 0; // 0 - не нажат, 1 - перешел по ссылке, 2 - использован
+        let shieldState = 0; // 0: доступен, 1: открыл ссылку, 2: использован
 
         function init() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             pipes = [];
+            score = 0;
+            bird.y = canvas.height / 2;
+            bird.velocity = 0;
             spawnPipe();
+            document.getElementById('high-score').innerText = localStorage.getItem('fb_best') || 0;
         }
 
         function spawnPipe() {
-            let gap = 160;
-            let randomY = Math.random() * (canvas.height - gap - 200) + 100;
-            pipes.push({ x: canvas.width, y: randomY, passed: false });
+            const gap = 160;
+            const minPipeHeight = 50;
+            const maxPipeHeight = canvas.height - gap - minPipeHeight - 100;
+            const pipeY = Math.floor(Math.random() * (maxPipeHeight - minPipeHeight + 1)) + minPipeHeight;
+            pipes.push({ x: canvas.width, y: pipeY, passed: false });
         }
 
         function draw() {
-            ctx.imageSmoothingEnabled = false;
-
-            // ФОН
+            // Отрисовка фона
             if (bgImg.complete) {
                 ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
             } else {
-                ctx.fillStyle = "#4ec0ca"; ctx.fillRect(0,0,canvas.width,canvas.height);
+                ctx.fillStyle = "#4ec0ca"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
 
             if (gameActive) {
@@ -103,86 +107,91 @@
                 for (let i = pipes.length - 1; i >= 0; i--) {
                     pipes[i].x -= 2.5;
 
-                    // ТРУБЫ
                     if (pipeImg.complete) {
-                        // Верхняя
+                        // Верхняя труба
                         ctx.save();
                         ctx.translate(pipes[i].x + 26, pipes[i].y);
                         ctx.scale(1, -1);
                         ctx.drawImage(pipeImg, -26, 0, 52, pipes[i].y);
                         ctx.restore();
-                        // Нижняя
+                        // Нижняя труба
                         ctx.drawImage(pipeImg, pipes[i].x, pipes[i].y + 160, 52, canvas.height);
                     }
 
-                    // КОЛЛИЗИЯ
+                    // Коллизия
                     if (bird.x + 5 < pipes[i].x + 52 && bird.x + bird.w - 5 > pipes[i].x) {
                         if (bird.y + 5 < pipes[i].y || bird.y + bird.h - 5 > pipes[i].y + 160) gameOver();
                     }
 
                     if (!pipes[i].passed && pipes[i].x < bird.x) {
-                        score++; pipes[i].passed = true;
+                        score++;
+                        pipes[i].passed = true;
                         tg.HapticFeedback.impactOccurred('medium');
                     }
+
                     if (pipes[i].x < -60) pipes.splice(i, 1);
                 }
-                if (pipes[pipes.length-1].x < canvas.width - 200) spawnPipe();
+
+                if (pipes[pipes.length - 1].x < canvas.width - 200) spawnPipe();
                 if (bird.y + bird.h > canvas.height || bird.y < 0) gameOver();
             }
 
-            // ПТИЦА
+            // Птица
             ctx.save();
-            ctx.translate(bird.x + bird.w/2, bird.y + bird.h/2);
-            ctx.rotate(Math.min(Math.PI/2, Math.max(-Math.PI/4, bird.velocity * 0.1)));
+            ctx.translate(bird.x + bird.w / 2, bird.y + bird.h / 2);
+            let rotation = Math.min(Math.PI / 2, Math.max(-Math.PI / 4, bird.velocity * 0.1));
+            ctx.rotate(rotation);
             if (birdImg.complete) {
-                ctx.drawImage(birdImg, -bird.w/2, -bird.h/2, bird.w, bird.h);
+                ctx.drawImage(birdImg, -bird.w / 2, -bird.h / 2, bird.w, bird.h);
             } else {
                 ctx.fillStyle = "yellow"; ctx.fillRect(-bird.w/2, -bird.h/2, bird.w, bird.h);
             }
             ctx.restore();
 
-            // СЧЕТ
-            ctx.fillStyle = "white"; ctx.strokeStyle = "black"; ctx.lineWidth = 4;
-            ctx.font = "24px 'Press Start 2P'"; ctx.textAlign = "center";
-            ctx.strokeText(score, canvas.width/2, 80); ctx.fillText(score, canvas.width/2, 80);
+            // Интерфейс
+            if (gameActive) {
+                ctx.fillStyle = "white"; ctx.strokeStyle = "black"; ctx.lineWidth = 5;
+                ctx.font = "28px 'Press Start 2P'"; ctx.textAlign = "center";
+                ctx.strokeText(score, canvas.width / 2, 100);
+                ctx.fillText(score, canvas.width / 2, 100);
+            }
 
             requestAnimationFrame(draw);
         }
 
         function gameOver() {
+            if (!gameActive) return;
             gameActive = false;
             tg.HapticFeedback.notificationOccurred('error');
+            
             document.getElementById('ui-overlay').style.display = 'flex';
             document.getElementById('final-score').innerText = score;
             
-            let hs = localStorage.getItem('fb_hs') || 0;
-            if (score > hs) {
-                hs = score;
-                localStorage.setItem('fb_hs', hs);
+            let best = localStorage.getItem('fb_best') || 0;
+            if (score > best) {
+                localStorage.setItem('fb_best', score);
+                document.getElementById('high-score').innerText = score;
             }
-            document.getElementById('high-score').innerText = hs;
 
-            // Если щит уже был использован, скрываем кнопку
-            if (shieldStep >= 2) {
+            if (shieldState >= 2) {
                 document.getElementById('shield-btn').style.display = 'none';
             }
         }
 
-        // ЛОГИКА КНОПОК
+        // Логика кнопок
         const shieldBtn = document.getElementById('shield-btn');
         shieldBtn.onclick = () => {
-            if (shieldStep === 0) {
-                tg.openLink('https://t.me/CodeGramApp'); // Твой канал
-                shieldStep = 1;
+            if (shieldState === 0) {
+                tg.openLink('https://t.me/CodeGramApp');
+                shieldState = 1;
                 shieldBtn.innerText = "✅ ПРОДОЛЖИТЬ";
                 shieldBtn.style.background = "#3498db";
-            } else if (shieldStep === 1) {
-                // ВОСКРЕШЕНИЕ
-                shieldStep = 2; // Помечаем как использованный
+            } else if (shieldState === 1) {
+                shieldState = 2; // Использован
                 gameActive = true;
                 bird.y = canvas.height / 2;
                 bird.velocity = 0;
-                pipes = []; 
+                pipes = [];
                 spawnPipe();
                 document.getElementById('ui-overlay').style.display = 'none';
                 tg.HapticFeedback.notificationOccurred('success');
@@ -190,13 +199,16 @@
         };
 
         document.getElementById('restart-btn').onclick = () => {
-            location.reload(); // Полный сброс игры
+            location.reload();
         };
 
-        window.addEventListener('touchstart', (e) => { 
-            if(gameActive) bird.velocity = bird.jump; 
-            if(e.target.tagName !== 'BUTTON') e.preventDefault(); 
-        }, {passive:false});
+        window.addEventListener('touchstart', (e) => {
+            if (gameActive) {
+                bird.velocity = bird.jump;
+                tg.HapticFeedback.impactOccurred('light');
+            }
+            if (e.target.tagName !== 'BUTTON') e.preventDefault();
+        }, { passive: false });
 
         init();
         draw();
