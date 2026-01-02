@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flappy King: Immortal Edition</title>
+    <title>Flappy King</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
@@ -24,7 +24,6 @@
             font-family: 'Press Start 2P', cursive; font-size: 10px; cursor: pointer;
             box-shadow: 0 4px 0 #a04000;
         }
-        .pixel-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #a04000; }
         .shield-btn { background: #2ecc71; box-shadow: 0 4px 0 #1b8a4a; }
     </style>
 </head>
@@ -45,12 +44,10 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // --- ВШИТЫЕ СПРАЙТЫ (BASE64) ---
-        const BIRD_DATA = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACIAAAAYBAMAAAA0fms6AAAAGFBMVEUAuv8AgP8AnP8A//8Auv8AgP8AnP8A//82m990AAAAB3RSTlMA////////AD9oEpYAAABISURBVDjLY2AYBaNgpALmBCHMBmIMmAnE6DAThDFhJhBjwEwgxoCZQIwBM4EYA2YCMQbMBGIMmAnE6DAThDFhJhBjwEwgxoAZAABpMgI79p677gAAAABJRU5ErkJggg==';
-        const PIPE_DATA = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAABICAMAAAB8v69fAAAAGFBMVEUAAAD/ZpD/ZpD/ZpD/ZpD/ZpD/ZpD/ZpDmcid5AAAAB3RSTlMA////////AD9oEpYAAABESURBVDjL7ZExDsAgDMNI7v8fd0unSAsSBySOnSPrZ7lsid9idXFpS7vL9773Nq+7XnbX064sVUu7lpZ7pPn95LeW+paSdwE6Awv+Wp79XAAAAABJRU5ErkJggg==';
-
-        const birdImg = new Image(); birdImg.src = BIRD_DATA;
-        const pipeImg = new Image(); pipeImg.src = PIPE_DATA;
+        // Стабильные ссылки на оригинал
+        const birdImg = new Image(); birdImg.src = 'https://raw.githubusercontent.com/sourabhv/FlappyBirdPython/master/assets/sprites/yellowbird-midflap.png';
+        const pipeImg = new Image(); pipeImg.src = 'https://raw.githubusercontent.com/sourabhv/FlappyBirdPython/master/assets/sprites/pipe-green.png';
+        const bgImg = new Image(); bgImg.src = 'https://raw.githubusercontent.com/sourabhv/FlappyBirdPython/master/assets/sprites/background-day.png';
 
         let bird = { x: 50, y: 150, w: 34, h: 24, gravity: 0.25, velocity: 0, jump: -5 };
         let pipes = []; let score = 0; let gameActive = true; let shieldState = 0;
@@ -58,42 +55,36 @@
         function init() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            pipes = [];
-            spawnPipe();
+            pipes = []; spawnPipe();
         }
 
         function spawnPipe() {
-            let gap = 160;
+            let gap = 150;
             let pipeY = Math.random() * (canvas.height - 300) + 100;
             pipes.push({ x: canvas.width, y: pipeY, passed: false });
         }
 
         function draw() {
             ctx.imageSmoothingEnabled = false;
-            // Фон (голубой, так как картинки фона часто ломаются)
-            ctx.fillStyle = "#4ec0ca";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if (bgImg.complete) ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+            else { ctx.fillStyle = "#4ec0ca"; ctx.fillRect(0,0,canvas.width,canvas.height); }
 
             if (gameActive) {
                 bird.velocity += bird.gravity;
                 bird.y += bird.velocity;
-
                 for (let i = pipes.length - 1; i >= 0; i--) {
                     pipes[i].x -= 2.5;
-
-                    // Рисуем трубы
-                    ctx.save();
-                    ctx.translate(pipes[i].x + 26, pipes[i].y);
-                    ctx.scale(1, -1);
-                    ctx.drawImage(pipeImg, -26, 0, 52, pipes[i].y);
-                    ctx.restore();
-                    ctx.drawImage(pipeImg, pipes[i].x, pipes[i].y + 160, 52, canvas.height);
-
-                    // Коллизия
-                    if (bird.x+5 < pipes[i].x+52 && bird.x+bird.w-5 > pipes[i].x) {
-                        if (bird.y+5 < pipes[i].y || bird.y+bird.h-5 > pipes[i].y + 160) gameOver();
+                    if (pipeImg.complete) {
+                        ctx.save();
+                        ctx.translate(pipes[i].x + 26, pipes[i].y);
+                        ctx.scale(1, -1);
+                        ctx.drawImage(pipeImg, -26, 0, 52, pipes[i].y);
+                        ctx.restore();
+                        ctx.drawImage(pipeImg, pipes[i].x, pipes[i].y + 150, 52, canvas.height);
                     }
-
+                    if (bird.x+5 < pipes[i].x+52 && bird.x+bird.w-5 > pipes[i].x) {
+                        if (bird.y+5 < pipes[i].y || bird.y+bird.h-5 > pipes[i].y + 150) gameOver();
+                    }
                     if (!pipes[i].passed && pipes[i].x < bird.x) {
                         score++; pipes[i].passed = true;
                         tg.HapticFeedback.impactOccurred('medium');
@@ -104,18 +95,15 @@
                 if (bird.y + bird.h > canvas.height || bird.y < 0) gameOver();
             }
 
-            // Птица
             ctx.save();
             ctx.translate(bird.x + bird.w/2, bird.y + bird.h/2);
             ctx.rotate(Math.min(Math.PI/2, Math.max(-Math.PI/4, bird.velocity * 0.1)));
-            ctx.drawImage(birdImg, -bird.w/2, -bird.h/2, bird.w, bird.h);
+            if (birdImg.complete) ctx.drawImage(birdImg, -bird.w/2, -bird.h/2, bird.w, bird.h);
             ctx.restore();
 
-            // Счет
             ctx.fillStyle = "white"; ctx.strokeStyle = "black"; ctx.lineWidth = 5;
             ctx.font = "24px 'Press Start 2P'"; ctx.textAlign = "center";
             ctx.strokeText(score, canvas.width/2, 80); ctx.fillText(score, canvas.width/2, 80);
-
             requestAnimationFrame(draw);
         }
 
