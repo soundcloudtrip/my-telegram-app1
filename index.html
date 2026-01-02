@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CodeGram Bird: Absolute Edition</title>
+    <title>Original Flappy CodeGram</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
@@ -13,26 +13,25 @@
         #ui-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: none; align-items: center; justify-content: center;
-            background: rgba(0,0,0,0.7); z-index: 10;
+            background: rgba(0,0,0,0.6); z-index: 10;
         }
 
         .pixel-box {
-            background: #e0e0e0; border: 6px solid #000; padding: 20px;
-            width: 80%; max-width: 300px; text-align: center;
-            box-shadow: inset -4px -4px 0px #808080, inset 4px 4px 0px #ffffff;
+            background: #ded895; border: 4px solid #543847; padding: 20px;
+            width: 80%; max-width: 300px; text-align: center; border-radius: 10px;
         }
 
         .pixel-btn {
-            display: block; width: 100%; padding: 15px 0; margin: 10px 0;
-            border: 4px solid #000; background: #f1c40f; color: #000;
+            display: block; width: 100%; padding: 12px 0; margin: 10px 0;
+            border: 3px solid #543847; background: #e86101; color: #fff;
             font-family: 'Press Start 2P', cursive; font-size: 10px; cursor: pointer;
-            box-shadow: inset -4px -4px 0px #b89200, inset 4px 4px 0px #fff48a;
+            box-shadow: 0 4px 0 #a04000;
         }
 
-        .pixel-btn:active { transform: translateY(2px); box-shadow: inset 4px 4px 0px #b89200; }
-        .shield-btn { background: #2ecc71; box-shadow: inset -4px -4px 0px #219150, inset 4px 4px 0px #86efac; }
+        .pixel-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #a04000; }
+        .shield-btn { background: #2ecc71; box-shadow: 0 4px 0 #1b8a4a; }
         
-        #stats { font-size: 10px; color: #333; margin-bottom: 15px; }
+        #score-board { color: #543847; font-size: 12px; line-height: 1.5; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -40,8 +39,8 @@
 
     <div id="ui-overlay">
         <div class="pixel-box">
-            <h1 style="font-size:14px; color:red; margin:0 0 15px 0;">GAME OVER</h1>
-            <div id="stats">
+            <h2 style="color: #fff; text-shadow: 2px 2px #543847; margin-top: 0;">GAME OVER</h2>
+            <div id="score-board">
                 SCORE: <span id="final-score">0</span><br>
                 BEST: <span id="high-score">0</span>
             </div>
@@ -56,21 +55,23 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // --- ВШИТАЯ ГРАФИКА (BASE64) ---
-        // Синяя птица (спрайт-лист 4 кадра)
-        const birdImg = new Image();
-        birdImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAAAeBAMAAAD6Y894AAAALVBMVEUAAAD///+ZmZl3d3fMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzO0R9SAAAADnRSTlMA/////////wA/aBKWAAAAUUlEQVQ4y2NgGAWjYBSMAlBAA9I0IEMmhmRDRmZDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRmRDRkYAAKIYAm5mX/GSAAAAAElFTkSuQmCC';
+        // --- ОРИГИНАЛЬНЫЕ СПРАЙТЫ ---
+        const assets = {
+            bird: 'https://wsrv.nl/?url=raw.githubusercontent.com/sourabhv/FlappyBirdPython/master/assets/sprites/yellowbird-midflap.png',
+            pipe: 'https://wsrv.nl/?url=raw.githubusercontent.com/sourabhv/FlappyBirdPython/master/assets/sprites/pipe-green.png',
+            bg: 'https://wsrv.nl/?url=raw.githubusercontent.com/sourabhv/FlappyBirdPython/master/assets/sprites/background-day.png'
+        };
 
-        // Труба (зеленая)
-        const pipeImg = new Image();
-        pipeImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABICAMAAAB8v69fAAAAGFBMVEUAAAD///8AAAD/ZpD/ZpD/ZpD/ZpD/ZpDeK9SCAAAAB3RSTlMA////////AD9oEpYAAABESURBVDjL7ZExDsAgDMNI7v8fd0unSAsSBySOnSPrZ7lsid9idXFpS7vL9773Nq+7XnbX064sVUu7lpZ7pPn95LeW+paSdwE6Awv+Wp79XAAAAABJRU5ErkJggg==';
+        const birdImg = new Image(); birdImg.src = assets.bird;
+        const pipeImg = new Image(); pipeImg.src = assets.pipe;
+        const bgImg = new Image(); bgImg.src = assets.bg;
 
-        let bird = { x: 50, y: 150, w: 38, h: 26, gravity: 0.22, velocity: 0, jump: -4.8, frame: 0 };
+        let bird = { x: 50, y: 150, w: 34, h: 24, gravity: 0.25, velocity: 0, jump: -5 };
         let pipes = [];
         let score = 0;
         let gameActive = true;
-        let shieldClicked = false;
-        let tick = 0;
+        let shieldAvailable = true;
+        let shieldStep = 0; // 0 - не нажат, 1 - перешел по ссылке, 2 - использован
 
         function init() {
             canvas.width = window.innerWidth;
@@ -80,63 +81,67 @@
         }
 
         function spawnPipe() {
-            let gap = 190;
+            let gap = 160;
             let randomY = Math.random() * (canvas.height - gap - 200) + 100;
             pipes.push({ x: canvas.width, y: randomY, passed: false });
         }
 
         function draw() {
-            // Фон (градиент вместо картинки, чтобы не нагружать код)
-            let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            grad.addColorStop(0, "#4ec0ca");
-            grad.addColorStop(1, "#d1f2f5");
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.imageSmoothingEnabled = false;
+
+            // ФОН
+            if (bgImg.complete) {
+                ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = "#4ec0ca"; ctx.fillRect(0,0,canvas.width,canvas.height);
+            }
 
             if (gameActive) {
-                tick++;
                 bird.velocity += bird.gravity;
                 bird.y += bird.velocity;
-                
-                // Анимация взмаха (каждые 8 тиков меняем кадр)
-                if (tick % 8 === 0) bird.frame = (bird.frame + 1) % 4;
 
                 for (let i = pipes.length - 1; i >= 0; i--) {
-                    pipes[i].x -= 3;
-                    
-                    // Рисуем трубы (вшитые)
-                    ctx.save();
-                    ctx.translate(pipes[i].x + 32, pipes[i].y);
-                    ctx.scale(1, -1); // Переворачиваем для верхней
-                    ctx.drawImage(pipeImg, -32, 0, 64, pipes[i].y);
-                    ctx.restore();
-                    // Нижняя
-                    ctx.drawImage(pipeImg, pipes[i].x, pipes[i].y + 190, 64, canvas.height);
+                    pipes[i].x -= 2.5;
 
-                    // Коллизия (с небольшим запасом)
-                    if (bird.x+8 < pipes[i].x+64 && bird.x+bird.w-8 > pipes[i].x) {
-                        if (bird.y+8 < pipes[i].y || bird.y+bird.h-8 > pipes[i].y + 190) gameOver();
+                    // ТРУБЫ
+                    if (pipeImg.complete) {
+                        // Верхняя
+                        ctx.save();
+                        ctx.translate(pipes[i].x + 26, pipes[i].y);
+                        ctx.scale(1, -1);
+                        ctx.drawImage(pipeImg, -26, 0, 52, pipes[i].y);
+                        ctx.restore();
+                        // Нижняя
+                        ctx.drawImage(pipeImg, pipes[i].x, pipes[i].y + 160, 52, canvas.height);
+                    }
+
+                    // КОЛЛИЗИЯ
+                    if (bird.x + 5 < pipes[i].x + 52 && bird.x + bird.w - 5 > pipes[i].x) {
+                        if (bird.y + 5 < pipes[i].y || bird.y + bird.h - 5 > pipes[i].y + 160) gameOver();
                     }
 
                     if (!pipes[i].passed && pipes[i].x < bird.x) {
                         score++; pipes[i].passed = true;
-                        tg.HapticFeedback.impactOccurred('light');
+                        tg.HapticFeedback.impactOccurred('medium');
                     }
-                    if (pipes[i].x < -70) pipes.splice(i, 1);
+                    if (pipes[i].x < -60) pipes.splice(i, 1);
                 }
-                if (pipes[pipes.length-1].x < canvas.width - 250) spawnPipe();
+                if (pipes[pipes.length-1].x < canvas.width - 200) spawnPipe();
                 if (bird.y + bird.h > canvas.height || bird.y < 0) gameOver();
             }
 
-            // Птица
+            // ПТИЦА
             ctx.save();
             ctx.translate(bird.x + bird.w/2, bird.y + bird.h/2);
             ctx.rotate(Math.min(Math.PI/2, Math.max(-Math.PI/4, bird.velocity * 0.1)));
-            // Отрисовка спрайта птицы
-            ctx.drawImage(birdImg, bird.frame * 34, 0, 34, 24, -bird.w/2, -bird.h/2, bird.w, bird.h);
+            if (birdImg.complete) {
+                ctx.drawImage(birdImg, -bird.w/2, -bird.h/2, bird.w, bird.h);
+            } else {
+                ctx.fillStyle = "yellow"; ctx.fillRect(-bird.w/2, -bird.h/2, bird.w, bird.h);
+            }
             ctx.restore();
 
-            // Счет
+            // СЧЕТ
             ctx.fillStyle = "white"; ctx.strokeStyle = "black"; ctx.lineWidth = 4;
             ctx.font = "24px 'Press Start 2P'"; ctx.textAlign = "center";
             ctx.strokeText(score, canvas.width/2, 80); ctx.fillText(score, canvas.width/2, 80);
@@ -150,37 +155,51 @@
             document.getElementById('ui-overlay').style.display = 'flex';
             document.getElementById('final-score').innerText = score;
             
-            let hs = localStorage.getItem('bird_best') || 0;
+            let hs = localStorage.getItem('fb_hs') || 0;
             if (score > hs) {
                 hs = score;
-                localStorage.setItem('bird_best', hs);
+                localStorage.setItem('fb_hs', hs);
             }
             document.getElementById('high-score').innerText = hs;
+
+            // Если щит уже был использован, скрываем кнопку
+            if (shieldStep >= 2) {
+                document.getElementById('shield-btn').style.display = 'none';
+            }
         }
 
-        // Кнопка щита
+        // ЛОГИКА КНОПОК
         const shieldBtn = document.getElementById('shield-btn');
         shieldBtn.onclick = () => {
-            if (!shieldClicked) {
+            if (shieldStep === 0) {
                 tg.openLink('https://t.me/CodeGramApp'); // Твой канал
-                shieldClicked = true;
+                shieldStep = 1;
                 shieldBtn.innerText = "✅ ПРОДОЛЖИТЬ";
-            } else {
-                gameActive = true; bird.y = canvas.height/2; bird.velocity = 0;
-                pipes = []; spawnPipe();
+                shieldBtn.style.background = "#3498db";
+            } else if (shieldStep === 1) {
+                // ВОСКРЕШЕНИЕ
+                shieldStep = 2; // Помечаем как использованный
+                gameActive = true;
+                bird.y = canvas.height / 2;
+                bird.velocity = 0;
+                pipes = []; 
+                spawnPipe();
                 document.getElementById('ui-overlay').style.display = 'none';
-                shieldBtn.style.display = 'none';
+                tg.HapticFeedback.notificationOccurred('success');
             }
         };
 
-        document.getElementById('restart-btn').onclick = () => { location.reload(); };
+        document.getElementById('restart-btn').onclick = () => {
+            location.reload(); // Полный сброс игры
+        };
 
         window.addEventListener('touchstart', (e) => { 
             if(gameActive) bird.velocity = bird.jump; 
             if(e.target.tagName !== 'BUTTON') e.preventDefault(); 
         }, {passive:false});
 
-        init(); draw();
+        init();
+        draw();
     </script>
 </body>
 </html>
