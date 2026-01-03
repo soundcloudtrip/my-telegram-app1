@@ -1,140 +1,224 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flappy King</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        body { margin: 0; overflow: hidden; background: #4ec0ca; font-family: 'Press Start 2P', cursive; }
-        canvas { display: block; image-rendering: pixelated; touch-action: none; }
-        #ui-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: none; align-items: center; justify-content: center;
-            background: rgba(0,0,0,0.5); z-index: 10;
-        }
-        .pixel-box {
-            background: #ded895; border: 4px solid #543847; padding: 20px;
-            width: 80%; max-width: 280px; text-align: center; border-radius: 10px;
-        }
-        .pixel-btn {
-            display: block; width: 100%; padding: 12px 0; margin: 10px 0;
-            border: 3px solid #543847; background: #e86101; color: #fff;
-            font-family: 'Press Start 2P', cursive; font-size: 10px; cursor: pointer;
-            box-shadow: 0 4px 0 #a04000;
-        }
-        .shield-btn { background: #2ecc71; box-shadow: 0 4px 0 #1b8a4a; }
-    </style>
+<meta charset="UTF-8">
+<title>Flappy Prompt</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<style>
+    body {
+        margin: 0;
+        background: #0f172a;
+        color: #fff;
+        font-family: Arial, sans-serif;
+        overflow: hidden;
+        user-select: none;
+    }
+    canvas {
+        display: block;
+        margin: auto;
+        background: linear-gradient(#020617, #020617);
+    }
+    #ui {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        text-align: center;
+        width: 100%;
+        pointer-events: none;
+    }
+    #score {
+        font-size: 24px;
+        font-weight: bold;
+    }
+    #prompt {
+        font-size: 14px;
+        opacity: 0.8;
+    }
+    #gameOver {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.85);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        text-align: center;
+    }
+    button {
+        margin-top: 12px;
+        padding: 10px 18px;
+        font-size: 16px;
+        border: none;
+        border-radius: 8px;
+        background: #38bdf8;
+        cursor: pointer;
+    }
+    ol {
+        padding-left: 20px;
+        text-align: left;
+    }
+</style>
 </head>
 <body>
-    <canvas id="game"></canvas>
-    <div id="ui-overlay">
-        <div class="pixel-box">
-            <h2 style="color: #fff; text-shadow: 2px 2px #543847; margin: 0;">GAME OVER</h2>
-            <p style="font-size: 10px; color: #543847;">SCORE: <span id="final-score">0</span></p>
-            <button id="shield-btn" class="pixel-btn shield-btn">🛡 ПОЛУЧИТЬ ЩИТ</button>
-            <button onclick="location.reload()" class="pixel-btn">ЗАНОВО</button>
-        </div>
-    </div>
 
-    <script>
-        const canvas = document.getElementById('game');
-        const ctx = canvas.getContext('2d');
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+<canvas id="game" width="360" height="640"></canvas>
 
-        // Стабильные ссылки на оригинал
-        const birdImg = new Image(); birdImg.src = 'https://raw.githubusercontent.com/sourabhv/FlappyBirdPython/master/assets/sprites/yellowbird-midflap.png';
-        const pipeImg = new Image(); pipeImg.src = 'https://raw.githubusercontent.com/sourabhv/FlappyBirdPython/master/assets/sprites/pipe-green.png';
-        const bgImg = new Image(); bgImg.src = 'https://raw.githubusercontent.com/sourabhv/FlappyBirdPython/master/assets/sprites/background-day.png';
+<div id="ui">
+    <div id="score">0</div>
+    <div id="prompt">Тапай, чтобы не упасть в баги</div>
+</div>
 
-        let bird = { x: 50, y: 150, w: 34, h: 24, gravity: 0.25, velocity: 0, jump: -5 };
-        let pipes = []; let score = 0; let gameActive = true; let shieldState = 0;
+<div id="gameOver">
+    <h2>💀 Game Over</h2>
+    <p id="finalScore"></p>
+    <h3>🏆 Топ-5</h3>
+    <ol id="leaders"></ol>
+    <button onclick="restart()">Играть ещё</button>
+</div>
 
-        function init() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            pipes = []; spawnPipe();
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let bird, pipes, score, speed, gravity, gap, gameRunning;
+
+const prompts = [
+    "Не упади в баги",
+    "Пролети между дедлайнами",
+    "Уклоняйся от техдолга",
+    "Соберись, релиз близко",
+    "Прод держится на честном слове",
+    "Это ещё не критическая ошибка"
+];
+
+function init() {
+    bird = { x: 80, y: 320, v: 0 };
+    pipes = [];
+    score = 0;
+    speed = 2;
+    gravity = 0.4;
+    gap = 170;
+    gameRunning = true;
+    document.getElementById("gameOver").style.display = "none";
+}
+
+function addPipe() {
+    const top = Math.random() * (canvas.height - gap - 120) + 40;
+    pipes.push({
+        x: canvas.width,
+        top: top,
+        bottom: top + gap,
+        passed: false
+    });
+}
+
+function updateDifficulty() {
+    if (score > 0 && score % 30 === 0) {
+        speed += 0.5;
+        gap = Math.max(110, gap - 10);
+        gravity += 0.03;
+    }
+}
+
+function update() {
+    if (!gameRunning) return;
+
+    bird.v += gravity;
+    bird.y += bird.v;
+
+    if (pipes.length === 0 || pipes[pipes.length - 1].x < 200) {
+        addPipe();
+    }
+
+    pipes.forEach(p => {
+        p.x -= speed;
+
+        if (!p.passed && p.x + 40 < bird.x) {
+            p.passed = true;
+            score++;
+            document.getElementById("score").innerText = score;
+            document.getElementById("prompt").innerText =
+                prompts[Math.floor(Math.random() * prompts.length)];
+            updateDifficulty();
         }
 
-        function spawnPipe() {
-            let gap = 150;
-            let pipeY = Math.random() * (canvas.height - 300) + 100;
-            pipes.push({ x: canvas.width, y: pipeY, passed: false });
-        }
+        if (
+            bird.x + 20 > p.x &&
+            bird.x < p.x + 40 &&
+            (bird.y < p.top || bird.y + 20 > p.bottom)
+        ) endGame();
+    });
 
-        function draw() {
-            ctx.imageSmoothingEnabled = false;
-            if (bgImg.complete) ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-            else { ctx.fillStyle = "#4ec0ca"; ctx.fillRect(0,0,canvas.width,canvas.height); }
+    pipes = pipes.filter(p => p.x > -50);
 
-            if (gameActive) {
-                bird.velocity += bird.gravity;
-                bird.y += bird.velocity;
-                for (let i = pipes.length - 1; i >= 0; i--) {
-                    pipes[i].x -= 2.5;
-                    if (pipeImg.complete) {
-                        ctx.save();
-                        ctx.translate(pipes[i].x + 26, pipes[i].y);
-                        ctx.scale(1, -1);
-                        ctx.drawImage(pipeImg, -26, 0, 52, pipes[i].y);
-                        ctx.restore();
-                        ctx.drawImage(pipeImg, pipes[i].x, pipes[i].y + 150, 52, canvas.height);
-                    }
-                    if (bird.x+5 < pipes[i].x+52 && bird.x+bird.w-5 > pipes[i].x) {
-                        if (bird.y+5 < pipes[i].y || bird.y+bird.h-5 > pipes[i].y + 150) gameOver();
-                    }
-                    if (!pipes[i].passed && pipes[i].x < bird.x) {
-                        score++; pipes[i].passed = true;
-                        tg.HapticFeedback.impactOccurred('medium');
-                    }
-                    if (pipes[i].x < -60) pipes.splice(i, 1);
-                }
-                if (pipes[pipes.length-1].x < canvas.width - 200) spawnPipe();
-                if (bird.y + bird.h > canvas.height || bird.y < 0) gameOver();
-            }
+    if (bird.y < 0 || bird.y > canvas.height) endGame();
+}
 
-            ctx.save();
-            ctx.translate(bird.x + bird.w/2, bird.y + bird.h/2);
-            ctx.rotate(Math.min(Math.PI/2, Math.max(-Math.PI/4, bird.velocity * 0.1)));
-            if (birdImg.complete) ctx.drawImage(birdImg, -bird.w/2, -bird.h/2, bird.w, bird.h);
-            ctx.restore();
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            ctx.fillStyle = "white"; ctx.strokeStyle = "black"; ctx.lineWidth = 5;
-            ctx.font = "24px 'Press Start 2P'"; ctx.textAlign = "center";
-            ctx.strokeText(score, canvas.width/2, 80); ctx.fillText(score, canvas.width/2, 80);
-            requestAnimationFrame(draw);
-        }
+    // bird
+    ctx.fillStyle = "#38bdf8";
+    ctx.fillRect(bird.x, bird.y, 20, 20);
 
-        function gameOver() {
-            gameActive = false;
-            document.getElementById('ui-overlay').style.display = 'flex';
-            document.getElementById('final-score').innerText = score;
-        }
+    // pipes
+    ctx.fillStyle = "#22c55e";
+    pipes.forEach(p => {
+        ctx.fillRect(p.x, 0, 40, p.top);
+        ctx.fillRect(p.x, p.bottom, 40, canvas.height);
+    });
+}
 
-        const shieldBtn = document.getElementById('shield-btn');
-        shieldBtn.onclick = () => {
-            if (shieldState === 0) {
-                tg.openLink('https://t.me/CodeGramApp');
-                shieldState = 1;
-                shieldBtn.innerText = "✅ ПРОДОЛЖИТЬ";
-                shieldBtn.style.background = "#3498db";
-            } else if (shieldState === 1) {
-                shieldState = 2;
-                gameActive = true; bird.y = canvas.height/2; bird.velocity = 0;
-                pipes = []; spawnPipe();
-                document.getElementById('ui-overlay').style.display = 'none';
-                shieldBtn.style.display = 'none';
-            }
-        };
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
 
-        window.addEventListener('touchstart', (e) => { 
-            if(gameActive) bird.velocity = bird.jump; 
-            if(e.target.tagName !== 'BUTTON') e.preventDefault(); 
-        }, {passive:false});
+function flap() {
+    if (!gameRunning) return;
+    bird.v = -6;
+}
 
-        init(); draw();
-    </script>
+function endGame() {
+    gameRunning = false;
+    saveScore(score);
+    showLeaders();
+    document.getElementById("finalScore").innerText = `Твой результат: ${score}`;
+    document.getElementById("gameOver").style.display = "flex";
+}
+
+function saveScore(value) {
+    const scores = JSON.parse(localStorage.getItem("flappyPromptScores") || "[]");
+    scores.push(value);
+    scores.sort((a,b)=>b-a);
+    localStorage.setItem("flappyPromptScores", JSON.stringify(scores.slice(0,5)));
+}
+
+function showLeaders() {
+    const list = document.getElementById("leaders");
+    list.innerHTML = "";
+    const scores = JSON.parse(localStorage.getItem("flappyPromptScores") || "[]");
+    scores.forEach(s => {
+        const li = document.createElement("li");
+        li.textContent = s;
+        list.appendChild(li);
+    });
+}
+
+function restart() {
+    init();
+}
+
+canvas.addEventListener("click", flap);
+document.addEventListener("keydown", e => {
+    if (e.code === "Space") flap();
+});
+
+init();
+loop();
+</script>
+
 </body>
 </html>
