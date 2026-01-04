@@ -48,7 +48,10 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
 const assets = {
-    bird: new Image(), pipe: new Image(), bg: new Image(), ground: new Image()
+    bird: new Image(),
+    pipe: new Image(),
+    bg: new Image(),
+    ground: new Image()
 };
 assets.bird.src = "https://raw.githubusercontent.com/sourabhv/FlapPyBird/master/assets/sprites/bluebird-midflap.png";
 assets.pipe.src = "https://raw.githubusercontent.com/sourabhv/FlapPyBird/master/assets/sprites/pipe-green.png";
@@ -56,9 +59,17 @@ assets.bg.src = "https://raw.githubusercontent.com/sourabhv/FlapPyBird/master/as
 assets.ground.src = "https://raw.githubusercontent.com/sourabhv/FlapPyBird/master/assets/sprites/base.png";
 
 const game = {
-    active: false, score: 0, w: 288, h: 512, pipes: [], 
+    active: false,
+    score: 0,
+    w: 288,
+    h: 512,
+    pipes: [],
     bird: { x: 50, y: 200, v: 0, w: 34, h: 24 },
-    speed: 2.2, gravity: 0.25, jump: -5, gap: 110, shield: 0,
+    speed: 2.2,
+    gravity: 0.25,
+    jump: -5,
+    gap: 110,
+    shield: 0,
 
     init() {
         this.resize();
@@ -73,11 +84,18 @@ const game = {
         this.renderScale = scale;
     },
 
-    start() { this.active = true; document.getElementById("start-screen").classList.add("hidden"); },
+    start() { 
+        this.active = true; 
+        document.getElementById("start-screen").classList.add("hidden"); 
+    },
 
     reset() {
-        this.score = 0; this.pipes = []; this.bird.y = 200; this.bird.v = 0;
-        this.active = true; this.shield = 0;
+        this.score = 0; 
+        this.pipes = []; 
+        this.bird.y = 200; 
+        this.bird.v = 0;
+        this.active = true; 
+        this.shield = 0;
         document.getElementById("death-screen").classList.add("hidden");
         document.getElementById("score").innerText = "0";
     },
@@ -99,7 +117,10 @@ const game = {
             this.shield = 1;
             document.getElementById("shield-btn").innerText = "ACTIVATE";
         } else {
-            this.active = true; this.pipes = []; this.bird.y = 200; this.bird.v = 0;
+            this.active = true; 
+            this.pipes = []; 
+            this.bird.y = 200; 
+            this.bird.v = 0;
             document.getElementById("death-screen").classList.add("hidden");
             document.getElementById("shield-btn").classList.add("hidden");
         }
@@ -119,13 +140,14 @@ const game = {
                 if (this.bird.y+5 < p.top || this.bird.y+19 > p.top + this.gap) this.die();
             }
             if (!p.scored && p.x < this.bird.x) {
-                p.scored = true; this.score++;
+                p.scored = true; 
+                this.score++;
                 document.getElementById("score").innerText = this.score;
                 tg.HapticFeedback.impactOccurred('light');
             }
         });
         this.pipes = this.pipes.filter(p => p.x > -60);
-        if (this.bird.y > 400 - this.bird.h || this.bird.y < 0) this.die();
+        if (this.bird.y > this.h - 112 - this.bird.h || this.bird.y < 0) this.die();
     },
 
     draw() {
@@ -136,17 +158,22 @@ const game = {
 
         ctx.drawImage(assets.bg, 0, 0, this.w, this.h);
 
+        const groundY = this.h - 112; // координата земли внизу
+
         this.pipes.forEach(p => {
             ctx.save();
             ctx.translate(p.x + 26, p.top);
             ctx.scale(1, -1);
             ctx.drawImage(assets.pipe, -26, 0);
             ctx.restore();
-            ctx.drawImage(assets.pipe, p.x, p.top + this.gap, 52, 400); // Труба рисуется глубоко вниз
+
+            // Трубы рисуем только до земли
+            const pipeHeight = groundY - (p.top + this.gap);
+            ctx.drawImage(assets.pipe, p.x, p.top + this.gap, 52, pipeHeight);
         });
 
-        // ПРЕГРАДА ДЛЯ ТРУБ (ЗЕМЛЯ) - Рисуем поверх труб!
-        ctx.drawImage(assets.ground, 0, 400, this.w, 112);
+        // Земля поверх труб
+        ctx.drawImage(assets.ground, 0, groundY, this.w, 112);
 
         ctx.save();
         ctx.translate(this.bird.x+17, this.bird.y+12);
@@ -157,7 +184,11 @@ const game = {
         ctx.restore();
     },
 
-    loop() { this.update(); this.draw(); requestAnimationFrame(() => this.loop()); }
+    loop() { 
+        this.update(); 
+        this.draw(); 
+        requestAnimationFrame(() => this.loop()); 
+    }
 };
 
 window.addEventListener("touchstart", (e) => {
