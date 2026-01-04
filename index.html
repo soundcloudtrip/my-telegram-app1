@@ -5,106 +5,82 @@
 <title>Flappy Prompt</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <style>
-    body {
-        margin: 0;
-        background: #0f172a;
-        color: #fff;
-        font-family: Arial, sans-serif;
-        overflow: hidden;
-        user-select: none;
-    }
-    canvas {
-        display: block;
-        margin: auto;
-        background: linear-gradient(#020617, #020617);
-    }
-    #ui {
-        position: absolute;
-        top: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        text-align: center;
-        width: 100%;
-        pointer-events: none;
-    }
-    #score {
-        font-size: 24px;
-        font-weight: bold;
-    }
-    #prompt {
-        font-size: 14px;
-        opacity: 0.8;
-    }
-    #gameOver {
-        position: absolute;
-        inset: 0;
-        background: rgba(0,0,0,0.85);
-        display: none;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        text-align: center;
-    }
-    button {
-        margin-top: 12px;
-        padding: 10px 18px;
-        font-size: 16px;
-        border: none;
-        border-radius: 8px;
-        background: #38bdf8;
-        cursor: pointer;
-    }
-    ol {
-        padding-left: 20px;
-        text-align: left;
-    }
+body {
+    margin: 0;
+    background: #70c5ce;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+}
+canvas {
+    display: block;
+    margin: auto;
+}
+#score {
+    position: absolute;
+    top: 20px;
+    width: 100%;
+    text-align: center;
+    font-size: 42px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 2px 2px 0 #000;
+}
+#gameOver {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    color: white;
+}
+button {
+    margin-top: 12px;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 6px;
+    border: none;
+    background: #facc15;
+}
 </style>
 </head>
+
 <body>
-
-<canvas id="game" width="360" height="640"></canvas>
-
-<div id="ui">
-    <div id="score">0</div>
-    <div id="prompt">Тапай, чтобы не упасть в баги</div>
-</div>
+<div id="score">0</div>
 
 <div id="gameOver">
-    <h2>💀 Game Over</h2>
+    <h2>Game Over</h2>
     <p id="finalScore"></p>
-    <h3>🏆 Топ-5</h3>
+    <h3>Top-5</h3>
     <ol id="leaders"></ol>
-    <button onclick="restart()">Играть ещё</button>
+    <button onclick="restart()">Restart</button>
 </div>
+
+<canvas id="game" width="360" height="640"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let bird, pipes, score, speed, gravity, gap, gameRunning;
+let bird, pipes, score, speed, gravity, gap, groundY, running;
 
-const prompts = [
-    "Не упади в баги",
-    "Пролети между дедлайнами",
-    "Уклоняйся от техдолга",
-    "Соберись, релиз близко",
-    "Прод держится на честном слове",
-    "Это ещё не критическая ошибка"
-];
+groundY = canvas.height - 80;
 
 function init() {
-    bird = { x: 80, y: 320, v: 0 };
+    bird = { x: 80, y: 300, v: 0, r: 12 };
     pipes = [];
     score = 0;
     speed = 2;
-    gravity = 0.4;
-    gap = 170;
-    gameRunning = true;
+    gravity = 0.45;
+    gap = 160;
+    running = true;
+    document.getElementById("score").innerText = score;
     document.getElementById("gameOver").style.display = "none";
 }
 
 function addPipe() {
-    const top = Math.random() * (canvas.height - gap - 120) + 40;
+    const top = Math.random() * 200 + 50;
     pipes.push({
         x: canvas.width,
         top: top,
@@ -115,59 +91,88 @@ function addPipe() {
 
 function updateDifficulty() {
     if (score > 0 && score % 30 === 0) {
-        speed += 0.5;
+        speed += 0.4;
         gap = Math.max(110, gap - 10);
-        gravity += 0.03;
+        gravity += 0.02;
     }
 }
 
 function update() {
-    if (!gameRunning) return;
+    if (!running) return;
 
     bird.v += gravity;
     bird.y += bird.v;
 
-    if (pipes.length === 0 || pipes[pipes.length - 1].x < 200) {
-        addPipe();
-    }
+    if (pipes.length === 0 || pipes[pipes.length - 1].x < 180) addPipe();
 
     pipes.forEach(p => {
         p.x -= speed;
 
-        if (!p.passed && p.x + 40 < bird.x) {
+        if (!p.passed && p.x + 52 < bird.x) {
             p.passed = true;
             score++;
             document.getElementById("score").innerText = score;
-            document.getElementById("prompt").innerText =
-                prompts[Math.floor(Math.random() * prompts.length)];
             updateDifficulty();
         }
 
         if (
-            bird.x + 20 > p.x &&
-            bird.x < p.x + 40 &&
-            (bird.y < p.top || bird.y + 20 > p.bottom)
+            bird.x + bird.r > p.x &&
+            bird.x - bird.r < p.x + 52 &&
+            (bird.y - bird.r < p.top || bird.y + bird.r > p.bottom)
         ) endGame();
     });
 
-    pipes = pipes.filter(p => p.x > -50);
+    pipes = pipes.filter(p => p.x > -60);
 
-    if (bird.y < 0 || bird.y > canvas.height) endGame();
+    if (bird.y + bird.r > groundY || bird.y < 0) endGame();
+}
+
+function drawBird() {
+    ctx.save();
+    ctx.translate(bird.x, bird.y);
+    ctx.rotate(Math.min(bird.v / 10, 0.5));
+
+    ctx.fillStyle = "#facc15";
+    ctx.beginPath();
+    ctx.arc(0, 0, bird.r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // eye
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.arc(5, -4, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+}
+
+function drawPipes() {
+    pipes.forEach(p => {
+        ctx.fillStyle = "#22c55e";
+        ctx.fillRect(p.x, 0, 52, p.top);
+        ctx.fillRect(p.x, p.bottom, 52, groundY - p.bottom);
+
+        ctx.strokeStyle = "#166534";
+        ctx.strokeRect(p.x, 0, 52, p.top);
+        ctx.strokeRect(p.x, p.bottom, 52, groundY - p.bottom);
+    });
+}
+
+function drawGround() {
+    ctx.fillStyle = "#ded895";
+    ctx.fillRect(0, groundY, canvas.width, 80);
 }
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // bird
-    ctx.fillStyle = "#38bdf8";
-    ctx.fillRect(bird.x, bird.y, 20, 20);
+    // sky
+    ctx.fillStyle = "#70c5ce";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // pipes
-    ctx.fillStyle = "#22c55e";
-    pipes.forEach(p => {
-        ctx.fillRect(p.x, 0, 40, p.top);
-        ctx.fillRect(p.x, p.bottom, 40, canvas.height);
-    });
+    drawPipes();
+    drawGround();
+    drawBird();
 }
 
 function loop() {
@@ -177,34 +182,34 @@ function loop() {
 }
 
 function flap() {
-    if (!gameRunning) return;
-    bird.v = -6;
+    if (!running) return;
+    bird.v = -7;
 }
 
 function endGame() {
-    gameRunning = false;
+    running = false;
     saveScore(score);
     showLeaders();
-    document.getElementById("finalScore").innerText = `Твой результат: ${score}`;
+    document.getElementById("finalScore").innerText = "Score: " + score;
     document.getElementById("gameOver").style.display = "flex";
 }
 
-function saveScore(value) {
-    const scores = JSON.parse(localStorage.getItem("flappyPromptScores") || "[]");
-    scores.push(value);
-    scores.sort((a,b)=>b-a);
-    localStorage.setItem("flappyPromptScores", JSON.stringify(scores.slice(0,5)));
+function saveScore(v) {
+    const s = JSON.parse(localStorage.getItem("fpScores") || "[]");
+    s.push(v);
+    s.sort((a,b)=>b-a);
+    localStorage.setItem("fpScores", JSON.stringify(s.slice(0,5)));
 }
 
 function showLeaders() {
     const list = document.getElementById("leaders");
     list.innerHTML = "";
-    const scores = JSON.parse(localStorage.getItem("flappyPromptScores") || "[]");
-    scores.forEach(s => {
-        const li = document.createElement("li");
-        li.textContent = s;
-        list.appendChild(li);
-    });
+    JSON.parse(localStorage.getItem("fpScores") || "[]")
+        .forEach(v => {
+            const li = document.createElement("li");
+            li.textContent = v;
+            list.appendChild(li);
+        });
 }
 
 function restart() {
@@ -219,6 +224,5 @@ document.addEventListener("keydown", e => {
 init();
 loop();
 </script>
-
 </body>
 </html>
