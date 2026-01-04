@@ -3,78 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Flappy Bird CodeGram</title>
+    <title>Flappy Bird Final Fix</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        
-        body, html { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            overflow: hidden; background: #4ec0ca; 
-            font-family: 'Press Start 2P', cursive;
-        }
-        
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #4ec0ca; font-family: 'Press Start 2P', cursive; }
         canvas { display: block; image-rendering: pixelated; touch-action: none; }
-
-        #ui-overlay {
-            position: absolute; inset: 0; pointer-events: none;
-            display: flex; flex-direction: column; align-items: center;
-            z-index: 10;
-        }
-
-        /* SCORE: Поднят так, чтобы не мешал TG UI */
-        #score {
-            margin-top: 50px; font-size: 32px; color: white;
-            text-shadow: 4px 4px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;
-            pointer-events: none;
-        }
-
-        .screen {
-            position: absolute; inset: 0; display: flex;
-            align-items: center; justify-content: center;
-            flex-direction: column; background: rgba(0,0,0,0.35);
-            pointer-events: auto;
-        }
-
-        .pixel-card {
-            background: #ded895; border: 4px solid #543847;
-            padding: 25px; text-align: center; border-radius: 15px;
-            box-shadow: 0 8px 0 rgba(0,0,0,0.2); width: 260px;
-        }
-
-        .pixel-btn {
-            display: block; width: 100%; padding: 15px 0; margin: 12px 0;
-            border: 4px solid #543847; background: #e86101; color: #fff;
-            font-family: 'Press Start 2P', cursive; font-size: 12px;
-            cursor: pointer; box-shadow: 0 6px 0 #a04000;
-            text-transform: uppercase;
-        }
-
+        #ui { position: absolute; inset: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; z-index: 100; }
+        #score { margin-top: 50px; font-size: 32px; color: white; text-shadow: 4px 4px 0 #000, -2px -2px 0 #000; }
+        .screen { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; background: rgba(0,0,0,0.3); pointer-events: auto; }
+        .pixel-card { background: #ded895; border: 4px solid #543847; padding: 25px; text-align: center; border-radius: 15px; width: 260px; }
+        .pixel-btn { display: block; width: 100%; padding: 15px 0; margin: 12px 0; border: 4px solid #543847; background: #e86101; color: #fff; font-family: 'Press Start 2P', cursive; font-size: 12px; cursor: pointer; box-shadow: 0 6px 0 #a04000; text-transform: uppercase; }
         .pixel-btn:active { transform: translateY(3px); box-shadow: 0 3px 0 #a04000; }
-        
         .shield-btn { background: #2ecc71; box-shadow: 0 6px 0 #1b8a4a; }
-        .continue-btn { background: #3498db; box-shadow: 0 6px 0 #217dbb; }
-
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-<div id="ui-overlay">
+<div id="ui">
     <div id="score">0</div>
-
     <div id="start-screen" class="screen">
         <div class="pixel-card">
-            <div style="color: white; text-shadow: 2px 2px #543847; margin-bottom: 20px;">FLAPPY KING</div>
+            <div style="margin-bottom: 20px; color: #543847;">FLAPPY KING</div>
             <button class="pixel-btn" onclick="game.start()">PLAY</button>
         </div>
     </div>
-
     <div id="death-screen" class="screen hidden">
         <div class="pixel-card">
             <div style="color: #543847; font-size: 14px; margin-bottom: 10px;">GAME OVER</div>
             <div id="final-score" style="color: #fff; text-shadow: 2px 2px #000; margin-bottom: 20px;">0</div>
-            <button id="shield-btn" class="pixel-btn shield-btn" onclick="game.handleShield()">🛡 ПОЛУЧИТЬ ЩИТ</button>
+            <button id="shield-btn" class="pixel-btn shield-btn" onclick="game.handleShield()">🛡 SHIELD</button>
             <button class="pixel-btn" onclick="game.reset()">RETRY</button>
         </div>
     </div>
@@ -90,37 +49,22 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
 const assets = {
-    bird: new Image(),
-    pipe: new Image(),
-    bg: new Image(),
-    ground: new Image()
+    bird: new Image(), pipe: new Image(), bg: new Image(), ground: new Image()
 };
 
-// Самые стабильные ссылки
 assets.bird.src = "https://raw.githubusercontent.com/sourabhv/FlapPyBird/master/assets/sprites/yellowbird-midflap.png";
 assets.pipe.src = "https://raw.githubusercontent.com/sourabhv/FlapPyBird/master/assets/sprites/pipe-green.png";
 assets.bg.src = "https://raw.githubusercontent.com/sourabhv/FlapPyBird/master/assets/sprites/background-day.png";
 assets.ground.src = "https://raw.githubusercontent.com/sourabhv/FlapPyBird/master/assets/sprites/base.png";
 
 const game = {
-    active: false,
-    score: 0,
-    width: 288,
-    height: 512,
-    scale: 1,
-    pipes: [],
-    shieldState: 0, // 0: available, 1: ready to continue, 2: used
-    
-    // Физика и сложность
-    gravity: 0.25,
-    flap: -5.2,
-    speed: 2.5,
-    gap: 140,
+    active: false, score: 0, width: 288, height: 512, scale: 1, pipes: [], shieldState: 0,
+    gravity: 0.25, flap: -5, speed: 2.5, gap: 140, groundX: 0,
 
     init() {
         this.resize();
         window.addEventListener('resize', () => this.resize());
-        this.bird = { x: 50, y: 200, v: 0, w: 34, h: 24, rot: 0 };
+        this.bird = { x: 50, y: 200, v: 0, w: 34, h: 24 };
         this.loop();
     },
 
@@ -130,71 +74,44 @@ const game = {
         canvas.height = window.innerHeight;
     },
 
-    start() {
-        this.active = true;
-        document.getElementById("start-screen").classList.add("hidden");
-    },
+    start() { this.active = true; document.getElementById("start-screen").classList.add("hidden"); },
 
     reset() {
-        this.score = 0;
-        this.speed = 2.5;
-        this.gap = 140;
-        this.pipes = [];
-        this.bird = { x: 50, y: 200, v: 0, w: 34, h: 24, rot: 0 };
-        this.shieldState = 0;
+        this.score = 0; this.speed = 2.5; this.pipes = []; this.shieldState = 0;
+        this.bird = { x: 50, y: 200, v: 0, w: 34, h: 24 };
         this.active = true;
         document.getElementById("death-screen").classList.add("hidden");
         document.getElementById("score").innerText = "0";
-        const sBtn = document.getElementById("shield-btn");
-        sBtn.classList.remove("hidden", "continue-btn");
-        sBtn.classList.add("shield-btn");
-        sBtn.innerText = "🛡 ПОЛУЧИТЬ ЩИТ";
+        document.getElementById("shield-btn").classList.remove("hidden");
     },
 
     spawnPipe() {
-        const minHeight = 80;
-        const maxHeight = this.height - this.gap - 120;
-        const top = Math.random() * (maxHeight - minHeight) + minHeight;
+        const top = Math.random() * (this.height - 112 - this.gap - 100) + 50;
         this.pipes.push({ x: this.width, top: top, scored: false });
     },
 
     update() {
         if (!this.active) return;
+        this.bird.v += this.gravity; this.bird.y += this.bird.v;
+        this.groundX = (this.groundX - this.speed) % this.width;
 
-        this.bird.v += this.gravity;
-        this.bird.y += this.bird.v;
-        this.bird.rot = Math.min(Math.PI/2, Math.max(-Math.PI/4, this.bird.v * 0.1));
-
-        if (this.pipes.length === 0 || this.pipes[this.pipes.length - 1].x < this.width - 180) {
-            this.spawnPipe();
-        }
+        if (this.pipes.length === 0 || this.pipes[this.pipes.length - 1].x < this.width - 180) this.spawnPipe();
 
         this.pipes.forEach(p => {
             p.x -= this.speed;
-
-            // Коллизия (хитбоксы с отступом для честности)
-            if (this.bird.x + 28 > p.x && this.bird.x + 6 < p.x + 52) {
-                if (this.bird.y + 6 < p.top || this.bird.y + 18 > p.top + this.gap) {
-                    this.die();
-                }
+            if (this.bird.x + 30 > p.x && this.bird.x + 5 < p.x + 52) {
+                if (this.bird.y + 5 < p.top || this.bird.y + 19 > p.top + this.gap) this.die();
             }
-
             if (!p.scored && p.x < this.bird.x) {
-                p.scored = true;
-                this.score++;
+                p.scored = true; this.score++;
                 document.getElementById("score").innerText = this.score;
                 tg.HapticFeedback.impactOccurred('light');
-                
-                // Прогрессивная сложность
-                if (this.score % 5 === 0) {
-                    this.speed += 0.15;
-                    this.gap = Math.max(105, this.gap - 2);
-                }
+                if (this.score % 5 === 0) this.speed += 0.2;
             }
         });
 
         this.pipes = this.pipes.filter(p => p.x > -60);
-        if (this.bird.y > this.height - 112 || this.bird.y < 0) this.die();
+        if (this.bird.y > this.height - 112 - this.bird.h || this.bird.y < 0) this.die();
     },
 
     die() {
@@ -205,75 +122,59 @@ const game = {
     },
 
     handleShield() {
-        const btn = document.getElementById("shield-btn");
         if (this.shieldState === 0) {
             tg.openLink('https://t.me/CodeGramApp');
             this.shieldState = 1;
-            btn.innerText = "✅ ПРОДОЛЖИТЬ";
-            btn.classList.remove("shield-btn");
-            btn.classList.add("continue-btn");
-        } else if (this.shieldState === 1) {
-            this.shieldState = 2;
-            this.active = true;
-            this.bird.y = 200;
-            this.bird.v = 0;
-            this.pipes = [];
+            document.getElementById("shield-btn").innerText = "ACTIVATE";
+        } else {
+            this.active = true; this.bird.y = 200; this.bird.v = 0; this.pipes = [];
             document.getElementById("death-screen").classList.add("hidden");
-            btn.classList.add("hidden");
-            tg.HapticFeedback.notificationOccurred('success');
+            document.getElementById("shield-btn").classList.add("hidden");
         }
     },
 
     draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.save();
-        
-        // Центрирование отрисовки
         const offsetX = (canvas.width - this.width * this.scale) / 2;
         ctx.translate(offsetX, 0);
         ctx.scale(this.scale, this.scale);
 
+        // 1. ФОН
         ctx.drawImage(assets.bg, 0, 0, this.width, this.height);
 
+        // 2. ТРУБЫ
         this.pipes.forEach(p => {
-            // Top
             ctx.save();
             ctx.translate(p.x + 26, p.top);
             ctx.scale(1, -1);
-            ctx.drawImage(assets.pipe, -26, 0);
+            ctx.drawImage(assets.pipe, -26, 0); // Верхняя
             ctx.restore();
-            // Bottom
-            ctx.drawImage(assets.pipe, p.x, p.top + this.gap);
+            ctx.drawImage(assets.pipe, p.x, p.top + this.gap, 52, this.height); // Нижняя (с запасом высоты)
         });
 
-        ctx.drawImage(assets.ground, 0, this.height - 112, this.width, 112);
+        // 3. ЗЕМЛЯ (Рисуем после труб, чтобы закрыть их снизу)
+        ctx.drawImage(assets.ground, this.groundX, this.height - 112, this.width, 112);
+        ctx.drawImage(assets.ground, this.groundX + this.width, this.height - 112, this.width, 112);
 
-        // Bird
+        // 4. ПТИЦА
         ctx.save();
         ctx.translate(this.bird.x + 17, this.bird.y + 12);
-        ctx.rotate(this.bird.rot);
+        ctx.rotate(Math.min(Math.PI/2, Math.max(-Math.PI/4, this.bird.v * 0.1)));
         ctx.drawImage(assets.bird, -17, -12);
         ctx.restore();
 
         ctx.restore();
     },
 
-    loop() {
-        this.update();
-        this.draw();
-        requestAnimationFrame(() => this.loop());
-    }
+    loop() { this.update(); this.draw(); requestAnimationFrame(() => this.loop()); }
 };
 
 window.addEventListener("touchstart", (e) => {
-    if (game.active) {
-        game.bird.v = game.flap;
-        tg.HapticFeedback.impactOccurred('light');
-    }
+    if (game.active) { game.bird.v = game.flap; tg.HapticFeedback.impactOccurred('light'); }
     if (e.target.tagName !== "BUTTON") e.preventDefault();
 }, {passive: false});
 
-// Запуск только после загрузки фона
 assets.bg.onload = () => game.init();
 </script>
 </body>
