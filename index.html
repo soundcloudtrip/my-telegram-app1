@@ -1,83 +1,117 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flappy King: Fullscreen Edition</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+<meta charset="UTF-8">
+<title>Flappy King</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-        html, body {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; background: #4ec0ca;
-            font-family: 'Press Start 2P', cursive;
-        }
+<style>
+@font-face {
+    font-family: "Pixel";
+    src: url("https://fonts.gstatic.com/s/pressstart2p/v15/e3t4euO8T0x7C6T6k5qI.ttf");
+}
 
-        canvas {
-            display: block; width: 100vw; height: 100vh;
-            image-rendering: pixelated; touch-action: none;
-        }
+html, body {
+    margin: 0; padding: 0;
+    background: #4ec0ca;
+    overflow: hidden;
+    font-family: "Pixel", sans-serif;
+    height: 100%;
+}
 
-        #ui {
-            position: absolute; inset: 0; pointer-events: none;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
+canvas {
+    display: block;
+    margin: auto;
+    image-rendering: pixelated;
+    touch-action: none;
+}
 
-        /* SCORE */
-        #score {
-            position: absolute; top: 10%; width: 100%;
-            text-align: center; font-size: 32px; color: #fff;
-            text-shadow: 3px 3px 0 #000, -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000;
-            z-index: 5;
-        }
+#ui {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+}
 
-        .screen {
-            position: absolute; inset: 0; display: flex;
-            align-items: center; justify-content: center;
-            flex-direction: column; background: rgba(0,0,0,0.4);
-            z-index: 10; pointer-events: auto;
-        }
+/* SCORE - Исправлен, чтобы не обрезался */
+#score {
+    position: absolute;
+    top: 40px; /* Отступ от верхней панели TG */
+    width: 100%;
+    text-align: center;
+    font-size: 32px;
+    color: #fff;
+    text-shadow: 3px 3px 0 #000, -1px -1px 0 #000;
+}
 
-        .pixel-box {
-            background: #ded895; border: 4px solid #543847;
-            padding: 20px; width: 260px; text-align: center;
-            border-radius: 12px; box-shadow: 0 6px 0 rgba(0,0,0,0.2);
-        }
+/* SCREENS */
+.screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background: rgba(0,0,0,.4);
+    color: white;
+}
 
-        .title { font-size: 18px; color: #fff; text-shadow: 2px 2px 0 #543847; margin-bottom: 15px; }
+.title-box {
+    padding: 20px;
+    border: 4px solid #000;
+    background: #fb923c;
+    box-shadow: 6px 6px 0 #000;
+    width: 240px;
+    text-align: center;
+}
 
-        /* КНОПКИ */
-        .pixel-btn {
-            display: block; width: 100%; padding: 15px 0; margin: 10px 0;
-            border: 3px solid #543847; background: #e86101; color: #fff;
-            font-family: 'Press Start 2P', cursive; font-size: 10px;
-            cursor: pointer; box-shadow: 0 4px 0 #a04000;
-        }
+.title { font-size: 20px; text-shadow: 2px 2px 0 #000; }
+.subtitle { margin-top: 10px; font-size: 10px; opacity: .9; }
 
-        .pixel-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #a04000; }
-        .shield-btn { background: #2ecc71; box-shadow: 0 4px 0 #1b8a4a; }
-    </style>
+/* RETRO BUTTON - Увеличены отступы для удобства клика */
+.pixel-btn {
+    pointer-events: auto;
+    margin-top: 20px;
+    padding: 16px 24px;
+    background: #f97316;
+    color: white;
+    border: 4px solid #000;
+    font-family: "Pixel", sans-serif;
+    font-size: 14px;
+    box-shadow: 4px 4px 0 #000;
+    cursor: pointer;
+}
+
+.pixel-btn:active {
+    transform: translate(2px,2px);
+    box-shadow: 2px 2px 0 #000;
+}
+
+.shield-btn { background: #2ecc71; }
+</style>
 </head>
+
 <body>
 
 <div id="ui">
     <div id="score">0</div>
 
     <div id="startScreen" class="screen">
-        <div class="pixel-box">
+        <div class="title-box">
             <div class="title">FLAPPY KING</div>
-            <button class="pixel-btn" onclick="startGame()">START</button>
+            <div class="subtitle">TAP TO FLY</div>
         </div>
+        <button class="pixel-btn" onclick="startGame()">START</button>
     </div>
 
     <div id="gameOver" class="screen" style="display:none">
-        <div class="pixel-box">
+        <div class="title-box">
             <div class="title">GAME OVER</div>
-            <div style="font-size: 10px; color: #543847; margin-bottom: 10px;">SCORE: <span id="finalScoreText">0</span></div>
-            <button id="shieldBtn" class="pixel-btn shield-btn" onclick="handleShield()">🛡 ПОЛУЧИТЬ ЩИТ</button>
-            <button class="pixel-btn" onclick="reset()">ЗАНОВО</button>
+            <div class="subtitle" id="finalScore"></div>
         </div>
+        <button id="shieldBtn" class="pixel-btn shield-btn" onclick="useShield()">🛡 GET SHIELD</button>
+        <button class="pixel-btn" onclick="reset()">RESTART</button>
     </div>
 </div>
 
@@ -90,76 +124,93 @@ tg.expand();
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// Базовое разрешение для логики (оригинал Flappy Bird)
 const BASE_W = 288;
 const BASE_H = 512;
+const GROUND_H = 112;
 
+let scale = 1;
 function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // Растягиваем на весь экран, сохраняя пропорции по высоте
+    scale = innerHeight / BASE_H;
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+    // Центрируем отрисовку
+    ctx.setTransform(scale, 0, 0, scale, (innerWidth - BASE_W * scale) / 2, 0);
 }
-window.addEventListener("resize", resize);
+addEventListener("resize", resize);
 resize();
 
-/* ASSETS */
+/* ASSETS - Твои оригинальные спрайты */
 const assets = {
     bg: new Image(),
     ground: new Image(),
     pipe: new Image(),
-    bird: new Image()
+    bird: []
 };
 
 assets.bg.src = "https://raw.githubusercontent.com/sourabhv/FlapPyBird/master/assets/sprites/background-day.png";
 assets.ground.src = "https://raw.githubusercontent.com/sourabhv/FlapPyBird/master/assets/sprites/base.png";
 assets.pipe.src = "https://raw.githubusercontent.com/sourabhv/FlapPyBird/master/assets/sprites/pipe-green.png";
-assets.bird.src = "https://raw.githubusercontent.com/sourabhv/FlapPyBird/master/assets/sprites/yellowbird-midflap.png";
+["upflap","midflap","downflap"].forEach((f,i)=>{
+    assets.bird[i] = new Image();
+    assets.bird[i].src = `https://raw.githubusercontent.com/sourabhv/FlapPyBird/master/assets/sprites/bluebird-${f}.png`;
+});
 
-let bird, pipes, score, gameActive, shieldUsed;
-const gravity = 0.25;
-const flapPower = -5;
-const pipeSpeed = 2.5;
-const pipeGap = 150;
+/* GAME PARAMETERS */
+let bird, pipes, score, shieldState;
+let started = false;
+let isGameOver = false;
+
+const gravity = 0.30;
+const flapPower = -5.2;
+const pipeSpeed = 2.2;
+const pipeGap = 110; // Проход стал чуть больше
+const pipeDistance = 220; // Трубы теперь реже
 
 function reset() {
-    bird = { x: 50, y: canvas.height / 2, v: 0, w: 34, h: 24 };
+    bird = { x: 60, y: 240, v: 0 };
     pipes = [];
     score = 0;
-    gameActive = false;
-    shieldUsed = false;
+    shieldState = 0; // 0: can get, 1: ready, 2: used
+    started = false;
+    isGameOver = false;
     document.getElementById("score").innerText = score;
     document.getElementById("startScreen").style.display = "flex";
     document.getElementById("gameOver").style.display = "none";
     document.getElementById("shieldBtn").style.display = "block";
-    document.getElementById("shieldBtn").innerText = "🛡 ПОЛУЧИТЬ ЩИТ";
+    document.getElementById("shieldBtn").innerText = "🛡 GET SHIELD";
 }
 
 function startGame() {
-    gameActive = true;
+    started = true;
     document.getElementById("startScreen").style.display = "none";
 }
 
-function spawnPipe() {
-    const minH = 50;
-    const maxH = canvas.height - pipeGap - 120;
-    const top = Math.random() * (maxH - minH) + minH;
-    pipes.push({ x: canvas.width, top, passed: false });
+function addPipe() {
+    // Упрощенный дизайн: плавные скачки (центр всегда в пределах 150-300px)
+    const prevTop = pipes.length > 0 ? pipes[pipes.length-1].top : 200;
+    const shift = (Math.random() - 0.5) * 100; // Ограничили прыжок до 50px
+    const top = Math.max(100, Math.min(300, prevTop + shift));
+    
+    pipes.push({
+        x: BASE_W,
+        top,
+        bottom: top + pipeGap,
+        passed: false
+    });
 }
 
 function update() {
-    if (!gameActive) return;
+    if (!started || isGameOver) return;
 
     bird.v += gravity;
     bird.y += bird.v;
 
-    if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) spawnPipe();
+    if (pipes.length === 0 || pipes[pipes.length-1].x < BASE_W - pipeDistance)
+        addPipe();
 
-    pipes.forEach((p, i) => {
+    pipes.forEach(p => {
         p.x -= pipeSpeed;
-
-        // Collision
-        if (bird.x + 5 < p.x + 52 && bird.x + bird.w - 5 > p.x) {
-            if (bird.y + 5 < p.top || bird.y + bird.h - 5 > p.top + pipeGap) endGame();
-        }
 
         if (!p.passed && p.x + 52 < bird.x) {
             p.passed = true;
@@ -167,39 +218,40 @@ function update() {
             document.getElementById("score").innerText = score;
             tg.HapticFeedback.impactOccurred('light');
         }
+
+        // Хитбоксы птицы
+        if (
+            bird.x + 30 > p.x &&
+            bird.x + 5 < p.x + 52 &&
+            (bird.y + 5 < p.top || bird.y + 20 > p.bottom)
+        ) endGame();
     });
 
     pipes = pipes.filter(p => p.x > -60);
-    if (bird.y > canvas.height - 100 || bird.y < 0) endGame();
+
+    if (bird.y > BASE_H - GROUND_H - 24 || bird.y < -20)
+        endGame();
 }
 
 function draw() {
-    ctx.imageSmoothingEnabled = false;
-    
-    // BG (Растягиваем на весь экран)
-    ctx.drawImage(assets.bg, 0, 0, canvas.width, canvas.height);
+    ctx.clearRect(-innerWidth, 0, innerWidth*2, BASE_H);
+    ctx.drawImage(assets.bg, 0, 0);
 
-    // Pipes
     pipes.forEach(p => {
-        // Top
         ctx.save();
         ctx.translate(p.x + 26, p.top);
-        ctx.scale(1, -1);
-        ctx.drawImage(assets.pipe, -26, 0, 52, p.top);
+        ctx.scale(1,-1);
+        ctx.drawImage(assets.pipe, -26, 0);
         ctx.restore();
-        // Bottom
-        ctx.drawImage(assets.pipe, p.x, p.top + pipeGap, 52, canvas.height);
+        ctx.drawImage(assets.pipe, p.x, p.bottom);
     });
 
-    // Bird
-    ctx.save();
-    ctx.translate(bird.x + bird.w/2, bird.y + bird.h/2);
-    ctx.rotate(Math.min(Math.PI/2, Math.max(-Math.PI/4, bird.v * 0.1)));
-    ctx.drawImage(assets.bird, -bird.w/2, -bird.h/2, bird.w, bird.h);
-    ctx.restore();
+    // Анимация твоей птицы
+    const birdFrame = Math.floor(Date.now()/140)%3;
+    ctx.drawImage(assets.bird[birdFrame], bird.x, bird.y);
 
-    // Ground
-    ctx.drawImage(assets.ground, 0, canvas.height - 100, canvas.width, 100);
+    // Бесконечная земля
+    ctx.drawImage(assets.ground, 0, BASE_H - GROUND_H);
 }
 
 function loop() {
@@ -209,31 +261,33 @@ function loop() {
 }
 
 function flap() {
-    if (gameActive) {
+    if (!started) startGame();
+    if (!isGameOver) {
         bird.v = flapPower;
     }
 }
 
 function endGame() {
-    gameActive = false;
+    isGameOver = true;
     tg.HapticFeedback.notificationOccurred('error');
-    document.getElementById("finalScoreText").innerText = score;
+    document.getElementById("finalScore").innerText = "SCORE: " + score;
     document.getElementById("gameOver").style.display = "flex";
 }
 
-function handleShield() {
+function useShield() {
     const btn = document.getElementById("shieldBtn");
-    if (btn.innerText.includes("ПОЛУЧИТЬ")) {
+    if (shieldState === 0) {
         tg.openLink('https://t.me/CodeGramApp');
-        btn.innerText = "✅ ПРОДОЛЖИТЬ";
-        btn.style.background = "#3498db";
-    } else {
-        gameActive = true;
-        bird.y = canvas.height / 2;
+        shieldState = 1;
+        btn.innerText = "✅ ACTIVATE SHIELD";
+    } else if (shieldState === 1) {
+        shieldState = 2;
+        isGameOver = false;
+        bird.y = 200;
         bird.v = 0;
         pipes = [];
         document.getElementById("gameOver").style.display = "none";
-        btn.style.display = "none"; // Один раз за игру
+        btn.style.display = "none";
     }
 }
 
