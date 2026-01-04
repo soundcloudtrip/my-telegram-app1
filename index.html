@@ -5,33 +5,45 @@
 <title>Flappy Prompt</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
 <style>
+@font-face {
+    font-family: "Pixel";
+    src: url("https://fonts.gstatic.com/s/pressstart2p/v15/e3t4euO8T0x7C6T6k5qI.ttf");
+}
+
 html, body {
     margin: 0;
     padding: 0;
     background: black;
     overflow: hidden;
+    font-family: Pixel, monospace;
 }
+
 canvas {
     display: block;
     margin: auto;
+    image-rendering: pixelated;
 }
+
 #ui {
     position: absolute;
     inset: 0;
     pointer-events: none;
 }
+
 #score {
     position: absolute;
-    top: 20px;
+    top: 24px;
     width: 100%;
     text-align: center;
-    font-size: 42px;
-    font-weight: bold;
+    font-size: 28px;
     color: white;
     text-shadow: 3px 3px 0 #000;
 }
-#startScreen, #gameOver {
+
+/* RETRO SCREENS */
+.screen {
     position: absolute;
     inset: 0;
     display: flex;
@@ -40,41 +52,43 @@ canvas {
     flex-direction: column;
     background: rgba(0,0,0,.35);
     color: white;
+    text-align: center;
 }
-#startScreen h1 {
-    font-size: 32px;
-    margin-bottom: 10px;
-}
-#startScreen p {
-    opacity: .8;
-}
-button {
+
+.pixel-btn {
     pointer-events: auto;
-    margin-top: 12px;
-    padding: 10px 22px;
-    font-size: 16px;
-    border-radius: 6px;
-    border: none;
-    background: #facc15;
+    margin-top: 20px;
+    padding: 14px 22px;
+    background: #f97316;
+    color: white;
+    border: 4px solid #000;
+    font-size: 14px;
+    text-transform: uppercase;
+    box-shadow: 4px 4px 0 #000;
+}
+
+.pixel-btn:active {
+    transform: translate(2px,2px);
+    box-shadow: 2px 2px 0 #000;
 }
 </style>
 </head>
+
 <body>
 
 <div id="ui">
     <div id="score">0</div>
 
-    <div id="startScreen">
-        <h1>Flappy Prompt</h1>
-        <p>Tap to start</p>
+    <div id="startScreen" class="screen">
+        <h1>FLAPPY</h1>
+        <p>Tap to fly</p>
+        <button class="pixel-btn" onclick="startGame()">START</button>
     </div>
 
-    <div id="gameOver" style="display:none">
-        <h2>Game Over</h2>
+    <div id="gameOver" class="screen" style="display:none">
+        <h2>GAME OVER</h2>
         <p id="finalScore"></p>
-        <h3>🏆 Top 5</h3>
-        <ol id="leaders"></ol>
-        <button onclick="reset()">Play again</button>
+        <button class="pixel-btn" onclick="reset()">RESTART</button>
     </div>
 </div>
 
@@ -92,21 +106,16 @@ const BASE_H = 512;
 const GROUND_H = 112;
 
 let scale = 1;
-
 function resize() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    scale = Math.min(w / BASE_W, h / BASE_H);
+    scale = Math.min(innerWidth / BASE_W, innerHeight / BASE_H);
     canvas.width = BASE_W * scale;
     canvas.height = BASE_H * scale;
-    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    ctx.setTransform(scale,0,0,scale,0,0);
 }
-window.addEventListener("resize", resize);
+addEventListener("resize", resize);
 resize();
 
-const user = tg.initDataUnsafe?.user;
-const username = user?.username || "Anonymous";
-
+/* ASSETS */
 const assets = {
     bg: new Image(),
     ground: new Image(),
@@ -123,8 +132,15 @@ assets.pipe.src = "https://raw.githubusercontent.com/sourabhv/FlapPyBird/master/
         `https://raw.githubusercontent.com/sourabhv/FlapPyBird/master/assets/sprites/bluebird-${f}.png`;
 });
 
-let bird, pipes, score, started, gameOver;
-let lastTime = 0;
+/* GAME STATE */
+let bird, pipes, score;
+let started = false;
+let gameOver = false;
+
+const gravity = 0.35;
+const flapPower = -6.5;
+const pipeSpeed = 2;
+const pipeGap = 100;
 
 function reset() {
     bird = { x: 60, y: 240, v: 0 };
@@ -137,28 +153,32 @@ function reset() {
     document.getElementById("gameOver").style.display = "none";
 }
 
+function startGame() {
+    started = true;
+    document.getElementById("startScreen").style.display = "none";
+}
+
 function addPipe() {
-    const gap = 100;
-    const top = Math.random() * 150 + 50;
+    const top = Math.random() * 150 + 40;
     pipes.push({
         x: BASE_W,
         top,
-        bottom: top + gap,
+        bottom: top + pipeGap,
         passed: false
     });
 }
 
-function update(dt) {
+function update() {
     if (!started || gameOver) return;
 
-    bird.v += 1200 * dt;
-    bird.y += bird.v * dt;
+    bird.v += gravity;
+    bird.y += bird.v;
 
-    if (pipes.length === 0 || pipes[pipes.length - 1].x < 140)
+    if (pipes.length === 0 || pipes[pipes.length-1].x < 140)
         addPipe();
 
     pipes.forEach(p => {
-        p.x -= 120 * dt;
+        p.x -= pipeSpeed;
 
         if (!p.passed && p.x + 52 < bird.x) {
             p.passed = true;
@@ -181,17 +201,18 @@ function update(dt) {
 
 function draw() {
     ctx.drawImage(assets.bg, 0, 0);
+
     pipes.forEach(p => {
         ctx.save();
         ctx.translate(p.x + 26, p.top);
-        ctx.scale(1, -1);
+        ctx.scale(1,-1);
         ctx.drawImage(assets.pipe, -26, 0);
         ctx.restore();
         ctx.drawImage(assets.pipe, p.x, p.bottom);
     });
 
     ctx.drawImage(
-        assets.bird[Math.floor(Date.now()/100)%3],
+        assets.bird[Math.floor(Date.now()/120)%3],
         bird.x,
         bird.y
     );
@@ -199,57 +220,28 @@ function draw() {
     ctx.drawImage(assets.ground, 0, BASE_H - GROUND_H);
 }
 
-function loop(time) {
-    const dt = Math.min((time - lastTime) / 1000, 0.02);
-    lastTime = time;
-    update(dt);
+function loop() {
+    update();
     draw();
     requestAnimationFrame(loop);
 }
 
 function flap() {
-    if (!started) {
-        started = true;
-        document.getElementById("startScreen").style.display = "none";
-    }
-    if (!gameOver) bird.v = -350;
+    if (!started) startGame();
+    if (!gameOver) bird.v = flapPower;
 }
 
 function endGame() {
     gameOver = true;
-    saveScore();
-    showLeaders();
-    document.getElementById("finalScore").innerText = "Score: " + score;
+    document.getElementById("finalScore").innerText = "SCORE: " + score;
     document.getElementById("gameOver").style.display = "flex";
-}
-
-function saveScore() {
-    tg.CloudStorage.getItem("scores", (e, d) => {
-        let s = d ? JSON.parse(d) : [];
-        s.push({ name: username, score });
-        s.sort((a,b)=>b.score-a.score);
-        tg.CloudStorage.setItem("scores", JSON.stringify(s.slice(0,5)));
-    });
-}
-
-function showLeaders() {
-    const list = document.getElementById("leaders");
-    list.innerHTML = "";
-    tg.CloudStorage.getItem("scores", (e,d)=>{
-        if (!d) return;
-        JSON.parse(d).forEach(r=>{
-            const li = document.createElement("li");
-            li.textContent = `${r.name}: ${r.score}`;
-            list.appendChild(li);
-        });
-    });
 }
 
 canvas.addEventListener("click", flap);
 document.addEventListener("keydown", e=>e.code==="Space"&&flap());
 
 reset();
-requestAnimationFrame(loop);
+loop();
 </script>
 </body>
 </html>
